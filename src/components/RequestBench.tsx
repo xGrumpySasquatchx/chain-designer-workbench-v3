@@ -5,6 +5,7 @@ import type { LumaBook } from '../model/luma';
 import type { DraftMolecule, LumaPanel, PadDesign, RequestDoc, Seed } from '../model/types';
 import { DesignPad } from './DesignPad';
 import { MoleculeGlyph } from './MoleculeGlyph';
+import { PanelInference } from './PanelInference';
 
 export function RequestRail({
   requests,
@@ -271,6 +272,14 @@ export function RequestBench({
                 onChange={(e) => onRename(e.target.value)}
               />
             </label>
+            {matched ? (
+              <PanelInference
+                format={matched}
+                chains={seed.chains}
+                vectors={seed.vectors}
+                moleculeCount={request.drafts.length}
+              />
+            ) : null}
             <section className="glyph-panel working">
               <div className="glyph-head">
                 <h3>

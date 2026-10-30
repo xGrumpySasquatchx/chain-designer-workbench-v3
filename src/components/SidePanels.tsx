@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
-const KEY = 'protein-chain-workbench-v2-sides';
+const KEY = 'protein-chain-workbench-v3-sides';
 const LEFT_MIN = 180;
 const LEFT_MAX = 520;
 const RIGHT_MIN = 220;

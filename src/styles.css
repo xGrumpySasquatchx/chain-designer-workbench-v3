@@ -48,6 +48,36 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .toolbar{flex:none; z-index:30; display:flex; align-items:center; gap:10px;
   background:var(--tool); border-bottom:1px solid var(--rule); padding:6px 10px; min-height:64px}
 .tool-brand{font-size:13px; font-weight:600; letter-spacing:-0.01em; white-space:nowrap; flex:none}
+.kind-switch{display:flex; flex:none; border:1px solid var(--rule); border-radius:4px; overflow:hidden}
+.kind-switch button{appearance:none; border:0; background:transparent; color:var(--ink-2); font:inherit; font-size:12px; font-weight:600; padding:6px 10px; cursor:pointer}
+.kind-switch button + button{border-left:1px solid var(--rule)}
+.kind-switch button[aria-pressed="true"]{background:var(--ink); color:var(--paper)}
+.kind-switch button:focus-visible{outline:2px solid var(--grain); outline-offset:-2px}
+.infer{border:1px solid var(--rule); border-radius:8px; padding:10px 12px; background:var(--card); display:flex; flex-direction:column; gap:8px}
+.infer h3{margin:0; font-size:13px}
+.infer-dl{display:grid; gap:6px; margin:0}
+.infer-dl div{display:grid; grid-template-columns:110px minmax(0,1fr); gap:8px}
+.infer-dl dt{color:var(--ink-3); font-size:12px}
+.infer-dl dd{margin:0}
+.infer-uses{display:flex; flex-wrap:wrap; gap:6px}
+.infer-uses .btn[aria-pressed="true"]{background:var(--grain-bg); border-color:transparent; color:var(--grain)}
+.infer-hosts{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px}
+.fit{border-radius:6px; padding:6px 8px; display:flex; flex-direction:column; gap:2px}
+.fit-name{font-weight:600}
+.fit-word{font-family:"IBM Plex Mono",monospace; font-size:11px}
+.fit-good{background:var(--in-bg); color:var(--in)}
+.fit-moderate{background:var(--warn-bg); color:var(--warn)}
+.fit-poor{background:var(--out-bg); color:var(--out)}
+.fit .sm{color:var(--ink-2)}
+.infer-rank{width:100%; border-collapse:collapse; font-size:12px}
+.infer-rank th,.infer-rank td{border-top:1px solid var(--rule); text-align:left; vertical-align:top; padding:6px 8px 6px 0}
+.infer-vec{display:block; margin-top:2px}
+.verdict{font-weight:600}
+.verdict-pass{color:var(--in)}
+.verdict-fail{color:var(--out)}
+.verdict-check{color:var(--warn)}
+.verdict-na{color:var(--ink-3)}
+.protein-bench{flex:1}
 .tool-tabs{display:flex; align-items:stretch; gap:6px; flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden}
 .tool{appearance:none; border:1px solid transparent; background:transparent; color:var(--ink-2); cursor:pointer;
   display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px;

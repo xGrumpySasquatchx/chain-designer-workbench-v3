@@ -8,6 +8,6 @@ import tailwindcss from '@tailwindcss/vite'
 // Keying on mode rather than command keeps `vite preview` serving the built
 // bundle from the same prefix it was built with.
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/chain-designer-workbench-v2/' : '/',
+  base: mode === 'production' ? '/chain-designer-workbench-v3/' : '/',
   plugins: [react(), tailwindcss()],
 }))

@@ -19,10 +19,11 @@ const HOST_IDS: HostId[] = ['ecoli', 'yeast', 'insect', 'mammalian', 'cellfree']
 const CODONS: CodonMethod[] = ['adapt', 'harmonize', 'rare', 'keep'];
 const MODES: ExpressionMode[] = ['transient', 'stable'];
 
-const KEY = 'protein-chain-workbench-v2';
+const KEY = 'protein-chain-workbench-v3';
 
 export function defaultState(): State {
   return {
+    kind: 'antibody',
     sel: emptySel(),
     variants: '',
     library: '',
@@ -49,6 +50,7 @@ export function loadState(): State {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;
     const r = JSON.parse(raw) as Partial<State>;
+    if (r.kind === 'protein') base.kind = 'protein';
     if (r.sel && typeof r.sel === 'object') {
       base.sel = {
         fmt: { ...emptySel().fmt, ...r.sel.fmt },

@@ -15,6 +15,7 @@ import { LevelTabs } from './components/LevelTabs';
 import { RowTable, type Col, type Row } from './components/RowTable';
 import { FoldBtn, ResizeGrip, useSidePanels } from './components/SidePanels';
 import { PanelPick, RequestBench, RequestRail } from './components/RequestBench';
+import { KindSwitch, ProteinBench } from './components/ProductKind';
 import { VariableRegions } from './components/VariableRegions';
 import { VLibraryRail } from './components/VLibraryRail';
 import {
@@ -636,9 +637,15 @@ export default function App() {
   return (
     <>
       <header className="toolbar">
+        <KindSwitch
+          kind={state.kind}
+          onChange={(kind) => setState((s) => ({ ...s, kind }))}
+        />
         <div className="tool-brand" title="Design a molecule, register the panel, then build its chains.">
           Protein Chain Workbench
         </div>
+        {state.kind === 'antibody' ? (
+        <>
         <LevelTabs
           grain={grain}
           model={model}
@@ -679,10 +686,16 @@ export default function App() {
         >
           {sides.layout.leftOpen || sides.layout.rightOpen ? 'Expand View' : 'Restore View'}
         </button>
+        </>
+        ) : (
+          <span className="stat-grow" />
+        )}
         <button className="btn sm" type="button" onClick={cycleTheme}>
           Theme
         </button>
       </header>
+      {state.kind === 'protein' ? <ProteinBench /> : (
+      <>
       <div className="statusbar" role="status">
         {openRequest ? (
           <span className="mono">
@@ -1179,6 +1192,8 @@ export default function App() {
           }
         />
       </div>
+      </>
+      )}
     </>
   );
 }

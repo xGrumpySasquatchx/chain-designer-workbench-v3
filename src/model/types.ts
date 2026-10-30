@@ -1,4 +1,6 @@
 export type Tier = 1 | 2 | 3 | 4 | 5 | 6;
+/** Antibody covers Abs, multispecifics, and ADCs. Protein covers receptors, scaffolds, and antigens. */
+export type ProductKind = 'antibody' | 'protein';
 export type Grain = 'fmt' | 'chn' | 'var' | 'mut' | 'con' | 'exp';
 
 export type TargetClass = 'secreted' | 'intracellular' | 'membrane';
@@ -284,6 +286,7 @@ export interface Preset {
 }
 
 export interface State {
+  kind: ProductKind;
   sel: Sel;
   variants: string;
   library: string;

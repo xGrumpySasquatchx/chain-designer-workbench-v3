@@ -8,6 +8,7 @@ import { compileSearch, panelMatches, searchCatalog, treeCatalog } from '../src/
 import { locationLine, stockLine, stockStatus } from '../src/model/inventory';
 import { applyMutations, mutationRelevant, specificVectorIds } from '../src/model/mutations';
 import { EMPTY_DESIGN, designForFormat, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
+import { classifyFormat, polypeptides, rankConstructs } from '../src/model/inference';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -553,6 +554,48 @@ check(
     heteroCells.some((cell) => cell.kih === 'hole') &&
     !!denovoCell &&
     cellOutline(denovoCell, lattice('denovo')).startsWith('M'),
+);
+function formatOf(id: string) {
+  const format = seed.formats.find((item) => item.id === id);
+  if (!format) throw new Error(id);
+  const chains = seed.chains.filter((chain) => format.chains.includes(chain.id));
+  return { format, chains };
+}
+const iggFmt = formatOf('F-001');
+const silencedFmt = formatOf('F-002');
+const fragmentFmt = formatOf('F-012');
+const biteFmt = formatOf('F-032');
+const fusionFmt = formatOf('F-015');
+const kihFmt = formatOf('F-016');
+check(
+  'a wild-type IgG is an effector-competent heavy and kappa pair',
+  classifyFormat(iggFmt.format, iggFmt.chains).id === 'F1' &&
+    polypeptides(iggFmt.format, iggFmt.chains).map((chain) => chain.id).join(',') === 'CH-01,CH-18',
+);
+check(
+  'a silenced IgG, a fragment, a BiTE, an Fc-fusion, and a knob-in-hole each take their format class',
+  classifyFormat(silencedFmt.format, silencedFmt.chains).id === 'F2' &&
+    classifyFormat(fragmentFmt.format, fragmentFmt.chains).id === 'F3' &&
+    classifyFormat(biteFmt.format, biteFmt.chains).id === 'F6' &&
+    classifyFormat(fusionFmt.format, fusionFmt.chains).id === 'F4' &&
+    classifyFormat(kihFmt.format, kihFmt.chains).id === 'F5' &&
+    polypeptides(kihFmt.format, kihFmt.chains).map((chain) => chain.id).join(',') === 'CH-02,CH-03,CH-18',
+);
+const stableIgG = rankConstructs(iggFmt.format, iggFmt.chains, seed.vectors, 'U3');
+const transientIgG = rankConstructs(iggFmt.format, iggFmt.chains, seed.vectors, 'U2');
+const sharedMarker = seed.vectors.map((vector) =>
+  vector.id === 'pDM-LC-kappa-WT' ? { ...vector, sel: 'Puromycin' } : vector,
+);
+const collided = rankConstructs(iggFmt.format, iggFmt.chains, sharedMarker, 'U3');
+check(
+  'a stable pool keeps distinct markers and a transient run does not score them',
+  stableIgG[0]?.markers === 'Pass' &&
+    stableIgG[0]?.vectors.some((vector) => vector.vectorId === 'pDM-HC-IgG1-WT') &&
+    stableIgG[0]?.vectors.some((vector) => vector.vectorId === 'pDM-LC-kappa-WT') &&
+    transientIgG[0]?.markers === 'n/a' &&
+    collided.some((row) => row.markers === 'Fail') &&
+    collided[0]?.markers === 'Pass' &&
+    collided[0]?.vectors.some((vector) => vector.marker === 'Blasticidin'),
 );
 const matched = matchFormat(seed, fabDesign);
 check('a Fab / Homo-Fc design matches wild-type IgG', matched?.id === 'F-001', matched?.id);
