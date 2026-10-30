@@ -163,7 +163,7 @@ export function hostFit(formatClass: FormatClassId): HostFit[] {
   return HOSTS.map((host) => ({ ...host, ...FIT[formatClass][host.id] }));
 }
 
-export function useCaseById(id: UseCaseId): UseCase {
+export function findUseCase(id: UseCaseId): UseCase {
   return USE_CASES.find((useCase) => useCase.id === id) ?? USE_CASES[0];
 }
 

@@ -5,7 +5,7 @@ import {
   hostFit,
   polypeptides,
   rankConstructs,
-  useCaseById,
+  findUseCase,
   type UseCaseId,
 } from '../model/inference';
 import type { Chain, Format, Vector } from '../model/types';
@@ -27,7 +27,7 @@ export function PanelInference({
   const formatClass = classifyFormat(format, mine);
   const hosts = hostFit(formatClass.id);
   const ranked = useCase ? rankConstructs(format, mine, vectors, useCase) : [];
-  const chosen = useCase ? useCaseById(useCase) : null;
+  const chosen = useCase ? findUseCase(useCase) : null;
   const instances = moleculeCount * chainsInMolecule.length;
 
   return (
