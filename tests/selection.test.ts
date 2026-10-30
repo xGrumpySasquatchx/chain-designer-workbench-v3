@@ -20,6 +20,7 @@ import { groupConstructs, planCombinations, ungroupConstructs } from '../src/mod
 import { textPdf } from '../src/model/pdf';
 import { recipeLines } from '../src/model/recipe';
 import { planChainRatios } from '../src/model/ratio';
+import { PROTEIN_FAMILIES, PROTEIN_USES, PROTEINS, newProteinDraft, proteinById, proteinSearchText } from '../src/model/proteins';
 import { buildSlots, slotsFor } from '../src/model/slots';
 import { facetTokens, rowHasFacet } from '../src/model/facets';
 import type { InventoryBook, Mutation, Seed, Sel, VPanel, VRegion } from '../src/model/types';
@@ -1025,6 +1026,26 @@ check(
     swapped['pDM-HC-IgG1-WT'] === 'out' &&
     sortedIds(swappedModel.buildV).join(',') === 'pDM-HC-IgG1-LALAPG',
   sortedIds(swappedModel.buildV).join(','),
+);
+const darpin = proteinById('PRT-003');
+const proteinDraft = newProteinDraft([], darpin);
+check(
+  'a protein can be a registered receptor or scaffold, or a new draft started from one',
+  PROTEIN_FAMILIES.map((family) => family.label).join(' · ') ===
+    'Receptors · Human-derived scaffolds · Non-human-derived scaffolds · Other engineered scaffolds' &&
+    PROTEINS.some((protein) => protein.family === 'receptor' && protein.name === 'TCR') &&
+    ['Anticalins', 'DARPins', 'Affilin', 'Adnectins', 'Avimers', 'Kunitz', 'Affibodies', 'Nanofitins', 'Fynomers', 'Knottins', 'β-Hairpin'].every(
+      (name) => PROTEINS.some((protein) => protein.name.includes(name)),
+    ) &&
+    new Set(PROTEINS.map((protein) => protein.id)).size === PROTEINS.length &&
+    PROTEIN_USES.map((item) => item.label).join(' · ') ===
+      'Targeted drug delivery · Receptor antagonism or ligand neutralization' &&
+    !!darpin &&
+    proteinDraft.id === 'PRT-R001' &&
+    proteinDraft.basisId === 'PRT-003' &&
+    proteinDraft.family === 'human' &&
+    newProteinDraft([proteinDraft]).id === 'PRT-R002' &&
+    proteinSearchText('Affibodies').includes(proteinSearchText('Affibody')),
 );
 
 console.log('\nAll selection checks passed.');

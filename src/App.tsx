@@ -16,7 +16,9 @@ import { LevelTabs } from './components/LevelTabs';
 import { RowTable, type Col, type Row } from './components/RowTable';
 import { FoldBtn, ResizeGrip, useSidePanels } from './components/SidePanels';
 import { PanelPick, RequestBench, RequestRail } from './components/RequestBench';
-import { KindSwitch, ProteinBench } from './components/ProductKind';
+import { KindSwitch } from './components/ProductKind';
+import { ProteinBench } from './components/ProteinBench';
+import { newProteinDraft, proteinById } from './model/proteins';
 import { PreferredSequences } from './components/PreferredSequences';
 import { VariableRegions } from './components/VariableRegions';
 import { VLibraryRail } from './components/VLibraryRail';
@@ -782,7 +784,48 @@ export default function App() {
           Theme
         </button>
       </header>
-      {state.kind === 'protein' ? <ProteinBench /> : (
+      {state.kind === 'protein' ? (
+        <ProteinBench
+          drafts={state.proteinDrafts}
+          activeId={state.activeProteinId}
+          expanded={sides.layout.leftOpen}
+          wrapStyle={sides.wrapStyle}
+          onFold={() => sides.toggle('left')}
+          fold={<FoldBtn side="left" open={sides.layout.leftOpen} onClick={() => sides.toggle('left')} />}
+          grip={
+            <ResizeGrip
+              side="left"
+              onDrag={(event) => sides.startResize('left', event)}
+              onReset={() => sides.resetWidth('left')}
+            />
+          }
+          onNew={(basisId) =>
+            setState((current) => {
+              const basis = basisId ? proteinById(basisId) : undefined;
+              const draft = newProteinDraft(current.proteinDrafts, basis);
+              return {
+                ...current,
+                proteinDrafts: [draft, ...current.proteinDrafts],
+                activeProteinId: draft.id,
+              };
+            })
+          }
+          onOpen={(id) => setState((current) => ({ ...current, activeProteinId: id }))}
+          onDelete={(id) =>
+            setState((current) => ({
+              ...current,
+              proteinDrafts: current.proteinDrafts.filter((draft) => draft.id !== id),
+              activeProteinId: current.activeProteinId === id ? null : current.activeProteinId,
+            }))
+          }
+          onChange={(draft) =>
+            setState((current) => ({
+              ...current,
+              proteinDrafts: current.proteinDrafts.map((item) => (item.id === draft.id ? draft : item)),
+            }))
+          }
+        />
+      ) : (
       <>
       <div className="statusbar" role="status">
         {openRequest ? (

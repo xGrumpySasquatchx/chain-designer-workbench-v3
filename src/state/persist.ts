@@ -9,6 +9,9 @@ import type {
   HostId,
   LumaMolecule,
   LumaPanel,
+  ProteinDraft,
+  ProteinFamily,
+  ProteinUse,
   RequestDoc,
   State,
   TargetClass,
@@ -18,6 +21,8 @@ const TARGETS: TargetClass[] = ['secreted', 'intracellular', 'membrane'];
 const HOST_IDS: HostId[] = ['ecoli', 'yeast', 'insect', 'mammalian', 'cellfree'];
 const CODONS: CodonMethod[] = ['adapt', 'harmonize', 'rare', 'keep'];
 const MODES: ExpressionMode[] = ['transient', 'stable'];
+const PROTEIN_FAMILIES: ProteinFamily[] = ['receptor', 'human', 'nonhuman', 'engineered'];
+const PROTEIN_USES: ProteinUse[] = ['delivery', 'antagonism'];
 
 const KEY = 'protein-chain-workbench-v3';
 
@@ -43,6 +48,8 @@ export function defaultState(): State {
     constructGroups: {},
     constructCount: null,
     sequencePicks: {},
+    proteinDrafts: [],
+    activeProteinId: null,
   };
 }
 
@@ -99,6 +106,8 @@ export function loadState(): State {
       base.constructCount = r.constructCount;
     }
     if (isGroupMap(r.sequencePicks)) base.sequencePicks = r.sequencePicks;
+    if (Array.isArray(r.proteinDrafts)) base.proteinDrafts = r.proteinDrafts.filter(isProteinDraft);
+    if (typeof r.activeProteinId === 'string') base.activeProteinId = r.activeProteinId;
   } catch {
     return defaultState();
   }
@@ -159,6 +168,19 @@ function isRatioMap(value: unknown): value is Record<string, number> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return Object.entries(value).every(
     ([key, parts]) => typeof key === 'string' && typeof parts === 'number' && Number.isFinite(parts) && parts >= 0,
+  );
+}
+
+function isProteinDraft(value: unknown): value is ProteinDraft {
+  if (!value || typeof value !== 'object') return false;
+  const draft = value as ProteinDraft;
+  return (
+    typeof draft.id === 'string' &&
+    typeof draft.name === 'string' &&
+    (draft.family === null || oneOf(draft.family, PROTEIN_FAMILIES) !== null) &&
+    (draft.basisId === null || typeof draft.basisId === 'string') &&
+    (draft.use === null || oneOf(draft.use, PROTEIN_USES) !== null) &&
+    typeof draft.note === 'string'
   );
 }
 

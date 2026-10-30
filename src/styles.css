@@ -114,7 +114,14 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .verdict-fail{color:var(--out)}
 .verdict-check{color:var(--warn)}
 .verdict-na{color:var(--ink-3)}
-.protein-bench{flex:1}
+.wrap.protein-wrap{grid-template-columns:minmax(0,var(--rail-w,260px)) minmax(0,1fr)}
+@media (max-width:820px){.wrap.protein-wrap{grid-template-columns:minmax(0,1fr)}}
+.protein-facts{max-width:640px}
+.protein-facts div{grid-template-columns:140px minmax(0,1fr)}
+.protein-fields{display:flex; flex-direction:column; gap:8px; max-width:480px}
+.protein-fields label{display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:650}
+.protein-fields select,.protein-fields textarea{font:inherit; font-size:12.5px; padding:5px 8px; border:1px solid var(--rule); border-radius:3px; background:var(--card); color:var(--ink)}
+.protein-fields textarea{resize:vertical}
 .tool-tabs{display:flex; align-items:stretch; gap:6px; flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden}
 .tool{appearance:none; border:1px solid transparent; background:transparent; color:var(--ink-2); cursor:pointer;
   display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px;

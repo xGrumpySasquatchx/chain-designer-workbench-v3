@@ -1,6 +1,19 @@
 export type Tier = 1 | 2 | 3 | 4 | 5 | 6;
 /** Antibody covers Abs, multispecifics, and ADCs. Protein covers receptors, scaffolds, and antigens. */
 export type ProductKind = 'antibody' | 'protein';
+export type ProteinFamily = 'receptor' | 'human' | 'nonhuman' | 'engineered';
+export type ProteinUse = 'delivery' | 'antagonism';
+
+/** A protein the user is designing, before it is registered. */
+export interface ProteinDraft {
+  id: string;
+  name: string;
+  family: ProteinFamily | null;
+  /** Registered scaffold or receptor this draft started from. */
+  basisId: string | null;
+  use: ProteinUse | null;
+  note: string;
+}
 export type Grain = 'fmt' | 'chn' | 'var' | 'mut' | 'con' | 'exp';
 
 export type TargetClass = 'secreted' | 'intracellular' | 'membrane';
@@ -309,6 +322,8 @@ export interface State {
   constructCount: number | null;
   /** Chain id to the nucleotide translation chosen for that chain. */
   sequencePicks: Record<string, string>;
+  proteinDrafts: ProteinDraft[];
+  activeProteinId: string | null;
 }
 
 export interface Model {
