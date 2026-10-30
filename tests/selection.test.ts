@@ -10,7 +10,7 @@ import { applyMutations, mutationRelevant, specificVectorIds } from '../src/mode
 import { EMPTY_DESIGN, designForFormat, fvForWell, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
 import { classifyFormat, constructSchemes, constructsProduced, polypeptides, rankConstructs } from '../src/model/inference';
 import { levelSteps, showDesignSteps } from '../src/model/levels';
-import { chainRegions, insertsOf, nucleotideTranslations, translateDna } from '../src/model/sequences';
+import { chainRegions, insertsOf, nucleotideTranslations, registeredStrings, translateDna } from '../src/model/sequences';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -693,8 +693,20 @@ check(
     multiFv.nucleotides.every((item) => item.dna && translateDna(item.dna) === multiFv.aminoAcid) &&
     new Set(multiFv.nucleotides.map((item) => item.dna)).size === 3 &&
     !!singleFv &&
-    singleFv.nucleotides.length === 1,
+    singleFv.nucleotides.length === 1 &&
+    (multiFv.nucleotides[0].registrations?.length ?? 0) === multiFv.nucleotides[0].molecules &&
+    (multiFv.nucleotides[0].registrations ?? []).every((item) => translateDna(item.dna) === multiFv.aminoAcid),
   `${heavyRegions.length} Fvs, one with ${multiFv?.nucleotides.length ?? 0} nucleotide strings`,
+);
+const seven = registeredStrings('demo', 'ACDEFGHIKLMNPQRSTVWY', 1, 7);
+check(
+  'a codon category of seven strings can be opened so the sixth is its own choice',
+  seven.length === 7 &&
+    seven[5].n === 6 &&
+    new Set(seven.map((item) => item.id)).size === 7 &&
+    new Set(seven.map((item) => item.dna)).size === 7 &&
+    seven.every((item) => translateDna(item.dna) === 'ACDEFGHIKLMNPQRSTVWY' && item.note.length > 0) &&
+    new Set(seven.map((item) => item.note)).size === 7,
 );
 check(
   'a mutein and a de novo protein are building blocks with their own amino-acid sequence',

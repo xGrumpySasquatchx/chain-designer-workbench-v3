@@ -1,6 +1,15 @@
 import type { Chain, LumaMolecule, PadDesign } from './types';
 
-/** A nucleotide string for one amino-acid region, already characterized on registered molecules. */
+/** One registered nucleotide string inside a codon category. */
+export interface NucleotideRegistration {
+  id: string;
+  /** 1-based place in the category. The 6th of 7 is `n === 6`. */
+  n: number;
+  dna: string;
+  note: string;
+}
+
+/** A codon category for one amino-acid region, already characterized on registered molecules. */
 export interface NucleotideTranslation {
   id: string;
   name: string;
@@ -8,8 +17,10 @@ export interface NucleotideTranslation {
   basis: string;
   molecules: number;
   contribution: string;
-  /** Nucleotides that translate back to the region's amino acids. */
+  /** Nucleotides of the first registered string in this category. */
   dna?: string;
+  /** Every registered string in this category. Length matches `molecules` when the region was built. */
+  registrations?: NucleotideRegistration[];
 }
 
 interface CatalogEntry {
@@ -119,10 +130,52 @@ const CODON_NAMES = [
   { name: 'Germline nucleotides', basis: 'An earlier codon choice for the same amino acids, rare codons included.' },
 ];
 
+/** Synonymous codons. The first of each set is the CHO high-frequency choice. */
+const SYNONYMS: Record<string, string[]> = {
+  A: ['GCC', 'GCT', 'GCA', 'GCG'],
+  C: ['TGC', 'TGT'],
+  D: ['GAC', 'GAT'],
+  E: ['GAG', 'GAA'],
+  F: ['TTC', 'TTT'],
+  G: ['GGC', 'GGA', 'GGG', 'GGT'],
+  H: ['CAC', 'CAT'],
+  I: ['ATC', 'ATT', 'ATA'],
+  K: ['AAG', 'AAA'],
+  L: ['CTG', 'CTC', 'TTA', 'TTG', 'CTT', 'CTA'],
+  M: ['ATG'],
+  N: ['AAC', 'AAT'],
+  P: ['CCC', 'CCT', 'CCA', 'CCG'],
+  Q: ['CAG', 'CAA'],
+  R: ['CGC', 'CGA', 'AGA', 'AGG', 'CGG', 'CGT'],
+  S: ['AGC', 'TCT', 'TCG', 'TCC', 'TCA', 'AGT'],
+  T: ['ACC', 'ACT', 'ACA', 'ACG'],
+  V: ['GTG', 'GTT', 'GTA', 'GTC'],
+  W: ['TGG'],
+  Y: ['TAC', 'TAT'],
+};
+
 const GENETIC: Record<string, string> = {};
-for (const table of CODONS) {
-  for (const [residue, codon] of Object.entries(table)) GENETIC[codon] = residue;
+for (const [residue, codons] of Object.entries(SYNONYMS)) {
+  for (const codon of codons) GENETIC[codon] = residue;
 }
+
+const REG_NOTES = [
+  'Highest titer of this codon set.',
+  'Fewer truncated species.',
+  'Lower aggregation after protein A.',
+  'Earliest lot. More rare codons remain.',
+  'Mid-pack titer with the cleanest intact mass.',
+  'Later lot with a slightly lower titer.',
+  'Clean intact mass and a slower growth rate.',
+  'Highest monomer after the second polish.',
+  'Stable titer across three shake-flask lots.',
+  'Fewest sequence variants by intact mass.',
+  'Best viability at harvest.',
+  'Lowest host-cell protein in the eluate.',
+  'Shortest production run that still cleared spec.',
+  'Most consistent titer between the two bioreactors.',
+  'Reserved backup. Last lot met spec with a lower yield.',
+];
 
 function hash(text: string): number {
   let h = 2166136261;
@@ -145,6 +198,41 @@ function fakeProtein(seed: string, length: number): string {
 
 function backTranslate(aminoAcid: string, table: Record<string, string>): string {
   return [...aminoAcid].map((residue) => table[residue] ?? 'NNN').join('');
+}
+
+function variantDna(aminoAcid: string, category: number, registration: number, seed: string): string {
+  const home = CODONS[Math.min(category, CODONS.length - 1)];
+  const canonical = backTranslate(aminoAcid, home);
+  if (registration === 0) return canonical;
+  const chars = [...aminoAcid];
+  const codons = chars.map((residue) => home[residue] ?? 'NNN');
+  for (let step = 0; step < chars.length; step++) {
+    const at = (registration + step) % chars.length;
+    const options = (SYNONYMS[chars[at]] ?? []).filter((codon) => codon !== codons[at]);
+    if (!options.length) continue;
+    codons[at] = options[hash(`${seed}:${registration}:${at}`) % options.length];
+    if (step > 0 && hash(`${seed}:${registration}:stop:${step}`) % 3 === 0) break;
+  }
+  return codons.join('');
+}
+
+/** The registered nucleotide strings inside one codon category. Each encodes the same amino acids. */
+export function registeredStrings(
+  categoryId: string,
+  aminoAcid: string,
+  category: number,
+  count: number,
+): NucleotideRegistration[] {
+  const total = Math.max(1, count);
+  return Array.from({ length: total }, (_, index) => {
+    const n = index + 1;
+    return {
+      id: `${categoryId}-r${n}`,
+      n,
+      dna: variantDna(aminoAcid, category, index, categoryId),
+      note: `${n} of ${total}. ${REG_NOTES[(n - 1) % REG_NOTES.length]}`,
+    };
+  });
 }
 
 /** Translate a nucleotide string with the same codon tables used to build it. */
@@ -243,18 +331,24 @@ function binderOf(design: PadDesign, slotIndex: number, slotCount: number): stri
 
 function codonVersions(id: string, aminoAcid: string, variants: number): NucleotideTranslation[] {
   const count = variants;
-  return CODON_NAMES.slice(0, count).map((item, index) => ({
-    id: `${id}-nt${index}`,
-    name: item.name,
-    preferred: index === 0,
-    basis: item.basis,
-    molecules: 1 + (hash(`${id}:${index}`) % (index === 0 ? 15 : 5)),
-    contribution:
-      index === 0
-        ? 'Highest titer share recorded for this amino-acid sequence.'
-        : 'Same amino acids, a different nucleotide string, with its own expression history.',
-    dna: backTranslate(aminoAcid, CODONS[index]),
-  }));
+  return CODON_NAMES.slice(0, count).map((item, index) => {
+    const categoryId = `${id}-nt${index}`;
+    const molecules = 1 + (hash(`${id}:${index}`) % (index === 0 ? 15 : 5));
+    const registrations = registeredStrings(categoryId, aminoAcid, index, molecules);
+    return {
+      id: categoryId,
+      name: item.name,
+      preferred: index === 0,
+      basis: item.basis,
+      molecules,
+      contribution:
+        index === 0
+          ? 'Highest titer share recorded for this amino-acid sequence.'
+          : 'Same amino acids, a different nucleotide string, with its own expression history.',
+      dna: registrations[0]?.dna,
+      registrations,
+    };
+  });
 }
 
 /**
@@ -281,10 +375,10 @@ export function chainRegions(chain: Chain, molecules: LumaMolecule[]): FvRegion[
       const variants = !insert.shared && molecule === sources[0] && index === 0 ? 3 : rolled === 0 ? 3 : rolled === 1 ? 2 : 1;
       const nucleotides =
         insert.shared && isUniversalLight(chain)
-          ? registered.map((item, codon) => ({
-              ...item,
-              dna: backTranslate(aminoAcid, CODONS[codon] ?? CODONS[0]),
-            }))
+          ? registered.map((item, codon) => {
+              const registrations = registeredStrings(item.id, aminoAcid, codon, item.molecules);
+              return { ...item, dna: registrations[0]?.dna, registrations };
+            })
           : codonVersions(id, aminoAcid, variants);
       regions.push({
         id,

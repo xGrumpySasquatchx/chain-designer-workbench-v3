@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { rowHasFacet } from '../model/facets';
 import type { Grain, Mark, Model } from '../model/types';
 
@@ -16,6 +16,18 @@ export interface Row {
 }
 
 const BUCKET_LABEL = ['In your build', 'Available', 'Ruled out'];
+const LEAD_KEY = 'protein-chain-workbench-v3-lead';
+const LEAD_DEFAULT = 240;
+
+function loadLeadHeight(): number {
+  try {
+    const n = Number(localStorage.getItem(LEAD_KEY));
+    if (n >= 96 && n <= 900) return n;
+  } catch {
+    /* private mode */
+  }
+  return LEAD_DEFAULT;
+}
 
 function bucketOf(grain: Grain, id: string, mark: Mark | undefined, model: Model, tier?: string) {
   if (mark === 'out') return { b: 2 as const, label: BUCKET_LABEL[2] };
@@ -79,6 +91,39 @@ export function RowTable({
   onHideOut: () => void;
 }) {
   const [sort, setSort] = useState<{ h: string; dir: 1 | -1 } | null>(null);
+  const [leadH, setLeadH] = useState(loadLeadHeight);
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEAD_KEY, String(leadH));
+    } catch {
+      /* private mode or quota */
+    }
+  }, [leadH]);
+  const startSplit = (event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startH = leadH;
+    const parent = event.currentTarget.parentElement;
+    const prevCursor = document.body.style.cursor;
+    const prevSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    const limit = () => {
+      const height = parent?.getBoundingClientRect().height ?? 640;
+      return Math.max(160, height - 120);
+    };
+    const move = (ev: PointerEvent) => {
+      setLeadH(Math.min(limit(), Math.max(96, Math.round(startH + ev.clientY - startY))));
+    };
+    const up = () => {
+      document.body.style.cursor = prevCursor;
+      document.body.style.userSelect = prevSelect;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
   const q = String(query ?? '').trim().toLowerCase();
   const items = rows
     .filter((r) => {
@@ -191,7 +236,7 @@ export function RowTable({
   });
 
   return (
-    <main className="panel list">
+    <main className={`panel list${lead ? ' is-split' : ''}`}>
       <div className="pathbar" aria-label="Folder path">
         <span>Local</span>
         <span className="path-sep" aria-hidden="true">
@@ -215,7 +260,23 @@ export function RowTable({
           </button>
         )}
       </div>
-      {lead}
+      {lead ? (
+        <>
+          <div className="lead-pane" style={{ height: leadH }}>
+            {lead}
+          </div>
+          <button
+            type="button"
+            className="split-grip"
+            draggable={true}
+            aria-label="Resize sequence pane"
+            title="Drag to give the sequences or the table more room. Double-click to reset."
+            onDragStart={(event) => event.preventDefault()}
+            onPointerDown={startSplit}
+            onDoubleClick={() => setLeadH(LEAD_DEFAULT)}
+          />
+        </>
+      ) : null}
       <div className="rows">
         <table>
           <thead>
