@@ -1,14 +1,6 @@
+import { levelSteps } from '../model/levels';
 import { buildSlots } from '../model/slots';
 import type { Grain, Model, Seed } from '../model/types';
-
-const STEPS: { g: Grain; lvl: string; name: string }[] = [
-  { g: 'fmt', lvl: '', name: 'Request' },
-  { g: 'chn', lvl: '1', name: 'Chain' },
-  { g: 'var', lvl: '2', name: 'Variable regions' },
-  { g: 'mut', lvl: '3', name: 'Mutations' },
-  { g: 'con', lvl: '4', name: 'Construct' },
-  { g: 'exp', lvl: '5', name: 'Expression' },
-];
 
 export function LevelTabs({
   grain,
@@ -19,6 +11,7 @@ export function LevelTabs({
   expressionCount,
   chainCount,
   mutationCount,
+  onTheFly,
   onGrain,
 }: {
   grain: Grain;
@@ -29,6 +22,7 @@ export function LevelTabs({
   expressionCount: string;
   chainCount?: string;
   mutationCount?: string;
+  onTheFly: boolean;
   onGrain: (g: Grain) => void;
 }) {
   const slots = buildSlots(seed, model.buildV).length;
@@ -41,9 +35,11 @@ export function LevelTabs({
     exp: expressionCount,
   };
 
+  const steps = levelSteps(onTheFly);
+
   return (
     <div className="tool-tabs" role="tablist" aria-label="Level">
-      {STEPS.map((s) => (
+      {steps.map((s) => (
         <button
           key={s.g}
           className="tool"

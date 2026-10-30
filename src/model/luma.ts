@@ -1,4 +1,4 @@
-import { chainsForDesign, designForFormat } from './design';
+import { chainsForDesign, designForFormat, fvForWell } from './design';
 import type {
   ChainUse,
   DraftMolecule,
@@ -149,10 +149,10 @@ function plateFills(formatCounts: number[]): number[] {
 
 /**
  * Seed formats are grouped into a Luma panel by the chains they use, then each
- * panel is filled out to a 96-well plate. Extra wells are further unique
- * molecules of an architecture already on that request. Chain UIDs are shared,
- * so a light chain registered once is the same chain on every molecule that
- * pairs with it.
+ * panel is filled out to a 96-well plate. Extra wells repeat an architecture
+ * already on that request, and each well still gets its own Fv. Chain UIDs stay
+ * the constant-region archetype. A fixed germline light chain is the exception
+ * that does not change from well to well.
  */
 export function assembleBook(
   seed: Seed,
@@ -198,7 +198,7 @@ export function assembleBook(
         panelId,
         formatId: format.id,
         chainIds: format.chains.map(chainUid),
-        design: designs[slot],
+        design: fvForWell(designs[slot], wellLabel(well)),
       });
     }
     panels.push({

@@ -41,7 +41,9 @@ import {
   registrationMatches,
   withHost,
 } from './model/expression';
-import { constructSchemes, polypeptides } from './model/inference';
+import { constructSchemes, constructsProduced, polypeptides } from './model/inference';
+import { showDesignSteps } from './model/levels';
+import { chainRegions } from './model/sequences';
 import { stockStatus } from './model/inventory';
 import {
   archetypeIdsOf,
@@ -538,7 +540,26 @@ export default function App() {
     };
   });
   const pendingPanel = !!activePanel && activePanel.moleculeIds.length === 0;
+  const draftPanel =
+    openRequest?.status === 'draft' && openRequest.panelId
+      ? book.panels.find((panel) => panel.id === openRequest.panelId)
+      : undefined;
+  const onTheFly = showDesignSteps(
+    grain,
+    activePanel ? activePanel.moleculeIds.length : null,
+    draftPanel ? draftPanel.moleculeIds.length : null,
+  );
   const panelReady = !!activePanel && !pendingPanel && inferred.perMolecule > 0;
+  const regionGroups = useMemo(() => {
+    if (!activePanel) return [];
+    const molecules = book.molecules.filter((molecule) => molecule.panelId === activePanel.id);
+    return inferred.chains.map((chain) => ({ chain, regions: chainRegions(chain, molecules) }));
+  }, [activePanel, book.molecules, inferred.chains]);
+  useEffect(() => {
+    if (!onTheFly && (state.grain === 'var' || state.grain === 'mut')) {
+      setState((s) => (s.grain === 'var' || s.grain === 'mut' ? { ...s, grain: 'chn' } : s));
+    }
+  }, [onTheFly, state.grain]);
   const moleculeCount = activePanel
     ? book.molecules.filter((molecule) => molecule.panelId === activePanel.id).length
     : 0;
@@ -546,6 +567,8 @@ export default function App() {
   const expressWith = schemes.some((scheme) => scheme.count === state.constructCount)
     ? (state.constructCount ?? 0)
     : (schemes[schemes.length - 1]?.count ?? 0);
+  const expressScheme = schemes.find((scheme) => scheme.count === expressWith);
+  const produced = expressScheme ? constructsProduced(inferred.chains, expressScheme, moleculeCount) : 0;
   const inferredMutations = panelMutations
     ? mutations.filter((mutation) => panelMutations.has(mutation.id)).length
     : 0;
@@ -727,6 +750,7 @@ export default function App() {
           }
           chainCount={panelReady ? `${inferred.perMolecule} inferred` : undefined}
           mutationCount={panelReady ? `${inferredMutations} inferred` : undefined}
+          onTheFly={onTheFly}
           onGrain={(g) => setState((s) => ({ ...s, grain: g }))}
         />
         <input
@@ -800,7 +824,9 @@ export default function App() {
                         .filter(Boolean)
                         .join(' · ')
                     : expressWith
-                      ? `Express each molecule with ${expressWith} construct${expressWith === 1 ? '' : 's'}`
+                      ? `Express each molecule with ${expressWith} construct${expressWith === 1 ? '' : 's'}${
+                          moleculeCount > 1 ? ` · ${produced} in this panel` : ''
+                        }`
                       : `${model.buildV.size} in build, ${model.reachV.size} available`}
         </span>
         <span className="stat-grow" />
@@ -1095,15 +1121,12 @@ export default function App() {
                     <p className="sm">{chainSentence}</p>
                   </section>
                   <PreferredSequences
-                    chains={inferred.chains}
-                    registered={Object.fromEntries(
-                      book.chains.map((chain) => [chain.archetypeId, chain.moleculeIds.length]),
-                    )}
+                    groups={regionGroups}
                     picks={state.sequencePicks}
-                    onPick={(chainId, translationId) =>
+                    onPick={(regionId, translationId) =>
                       setState((s) => ({
                         ...s,
-                        sequencePicks: { ...s.sequencePicks, [chainId]: translationId },
+                        sequencePicks: { ...s.sequencePicks, [regionId]: translationId },
                       }))
                     }
                   />
@@ -1119,7 +1142,8 @@ export default function App() {
                     <ConstructCount
                       schemes={schemes}
                       selected={expressWith}
-                      chainNames={inferred.names}
+                      chains={inferred.chains}
+                      moleculeCount={moleculeCount}
                       onSelect={(count) => setState((s) => ({ ...s, constructCount: count }))}
                     />
                   ) : null}

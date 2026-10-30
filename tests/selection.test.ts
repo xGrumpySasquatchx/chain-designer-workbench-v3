@@ -7,9 +7,10 @@ import { addToLibrary, applyClones, applyPanels, filterCatalog, insertsByVector,
 import { compileSearch, panelMatches, searchCatalog, treeCatalog } from '../src/model/vsearch';
 import { locationLine, stockLine, stockStatus } from '../src/model/inventory';
 import { applyMutations, mutationRelevant, specificVectorIds } from '../src/model/mutations';
-import { EMPTY_DESIGN, designForFormat, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
-import { classifyFormat, constructSchemes, polypeptides, rankConstructs } from '../src/model/inference';
-import { nucleotideTranslations } from '../src/model/sequences';
+import { EMPTY_DESIGN, designForFormat, fvForWell, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
+import { classifyFormat, constructSchemes, constructsProduced, polypeptides, rankConstructs } from '../src/model/inference';
+import { levelSteps, showDesignSteps } from '../src/model/levels';
+import { chainRegions, insertsOf, nucleotideTranslations, translateDna } from '../src/model/sequences';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -497,6 +498,49 @@ check(
     new Set(catalogCounts).size > 10,
   catalogCounts.join(','),
 );
+const fvKey = (design: (typeof book.molecules)[number]['design']) =>
+  [design.targets.join('~'), design.cTargetLeft.join('~'), design.cTargetRight.join('~')].join('|');
+let wellsAreUnique = true;
+let sameFormatDiffers = false;
+for (const panel of book.panels) {
+  const mols = book.molecules.filter((molecule) => molecule.panelId === panel.id);
+  const keys = mols.map((molecule) => fvKey(molecule.design));
+  if (new Set(keys).size !== mols.length) wellsAreUnique = false;
+  const byFormat = new Map<string, string[]>();
+  for (const molecule of mols) {
+    const list = byFormat.get(molecule.formatId) ?? [];
+    list.push(fvKey(molecule.design));
+    byFormat.set(molecule.formatId, list);
+  }
+  for (const list of byFormat.values()) {
+    if (list.length > 1 && new Set(list).size === list.length) sameFormatDiffers = true;
+  }
+}
+check(
+  'each panel well is a unique molecule, even when the format repeats',
+  wellsAreUnique && sameFormatDiffers,
+);
+const bispecific = formatOf('F-029');
+const bispecificSchemes = constructSchemes(polypeptides(bispecific.format, bispecific.chains).length);
+const fourApart = bispecificSchemes.find((scheme) => scheme.label === '1×1×1×1');
+const twoByTwo = bispecificSchemes.find((scheme) => scheme.label === '2×2');
+check(
+  'a bispecific panel builds one construct set per well, so 1×1×1×1 and 2×2 scale with the plate',
+  !!fourApart &&
+    !!twoByTwo &&
+    constructsProduced(polypeptides(bispecific.format, bispecific.chains), fourApart, 86) === 344 &&
+    constructsProduced(polypeptides(bispecific.format, bispecific.chains), twoByTwo, 86) === 172,
+);
+const dekk = formatOf('F-024');
+const dekkChains = polypeptides(dekk.format, dekk.chains);
+const dekkPair = constructSchemes(dekkChains.length).find((scheme) => scheme.label === '1×1');
+const dekkDesign = designForFormat(dekk.format, dekk.chains);
+check(
+  'a universal light chain is built once while each well keeps its own heavy-chain Fv',
+  !!dekkPair &&
+    constructsProduced(dekkChains, dekkPair, 52) === 53 &&
+    fvForWell(dekkDesign, 'A1').targets[0] !== fvForWell(dekkDesign, 'A2').targets[0],
+);
 check(
   'every chain and construct shares the panel graph',
   seed.chains.every((c) => book.chains.some((l) => l.archetypeId === c.id && l.moleculeIds.length > 0)) &&
@@ -628,6 +672,56 @@ check(
     heavyTranslations[0].preferred &&
     heavyTranslations[0].molecules === 49 &&
     nucleotideTranslations(registeredHeavy!, 0).length === 0,
+);
+const iggWells = book.molecules.filter((molecule) => molecule.panelId === 'PN-005');
+const heavyRegions = chainRegions(registeredHeavy!, iggWells);
+const multiFv = heavyRegions[0];
+const singleFv = heavyRegions.find((region) => region.nucleotides.length === 1);
+const mutein = seed.chains.find((chain) => chain.id === 'CH-39');
+const designed = seed.chains.find((chain) => chain.id === 'CH-41');
+const stump = seed.chains.find((chain) => chain.id === 'CH-17');
+const muteinWells = book.molecules.filter((molecule) => molecule.formatId === 'F-050').slice(0, 6);
+const muteinRegions = chainRegions(mutein!, muteinWells);
+const designedRegions = chainRegions(designed!, book.molecules.filter((molecule) => molecule.formatId === 'F-051').slice(0, 4));
+const sharedLight = chainRegions(commonLight!, iggWells);
+check(
+  'each well has its own amino-acid Fv, and some of those Fvs have more than one nucleotide string',
+  heavyRegions.length === iggWells.length &&
+    new Set(heavyRegions.map((region) => region.aminoAcid)).size === heavyRegions.length &&
+    multiFv.nucleotides.length === 3 &&
+    multiFv.nucleotides.filter((item) => item.preferred).length === 1 &&
+    multiFv.nucleotides.every((item) => item.dna && translateDna(item.dna) === multiFv.aminoAcid) &&
+    new Set(multiFv.nucleotides.map((item) => item.dna)).size === 3 &&
+    !!singleFv &&
+    singleFv.nucleotides.length === 1,
+  `${heavyRegions.length} Fvs, one with ${multiFv?.nucleotides.length ?? 0} nucleotide strings`,
+);
+check(
+  'a mutein and a de novo protein are building blocks with their own amino-acid sequence',
+  insertsOf(mutein!).some((insert) => insert.kind === 'Mutein') &&
+    insertsOf(designed!).some((insert) => insert.kind === 'De novo') &&
+    muteinRegions.length > 0 &&
+    muteinRegions.every((region) => region.kind === 'Mutein' && region.aminoAcid.length === 48) &&
+    designedRegions.length > 0 &&
+    designedRegions.every((region) => region.kind === 'De novo' && region.aminoAcid.length === 48) &&
+    insertsOf(stump!).length === 0,
+);
+check(
+  'a universal light chain is one amino-acid sequence with more than one nucleotide string',
+  sharedLight.length === 1 &&
+    sharedLight[0].well === null &&
+    sharedLight[0].nucleotides.length > 1 &&
+    sharedLight[0].nucleotides.every((item) => item.dna && translateDna(item.dna) === sharedLight[0].aminoAcid),
+);
+check(
+  'variable regions and mutations are tabs only while a panel is designed on the fly',
+  levelSteps(false).map((step) => step.g).join(',') === 'fmt,chn,con,exp' &&
+    levelSteps(true).map((step) => step.g).join(',') === 'fmt,chn,var,mut,con,exp' &&
+    levelSteps(false).map((step) => step.lvl).join(',') === ',1,2,3' &&
+    showDesignSteps('fmt', 52, 0) &&
+    !showDesignSteps('chn', 52, 0) &&
+    showDesignSteps('chn', 0, null) &&
+    !showDesignSteps('fmt', 52, null),
 );
 const matched = matchFormat(seed, fabDesign);
 check('a Fab / Homo-Fc design matches wild-type IgG', matched?.id === 'F-001', matched?.id);

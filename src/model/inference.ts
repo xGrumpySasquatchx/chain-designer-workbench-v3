@@ -195,6 +195,31 @@ export function constructSchemes(chainCount: number): ConstructScheme[] {
   return schemes;
 }
 
+/** A fixed germline or a stock plasmid with no insert is the same in every well. */
+export function chainVariesPerWell(chain: Chain): boolean {
+  const text = `${chain.name} ${chain.slots} ${chain.note}`;
+  if (/fixed germline|fixed IGKV|common \(fixed/i.test(text)) return false;
+  if (/no insert|stock plasmid/i.test(text)) return false;
+  return true;
+}
+
+/**
+ * Constructs to build for a panel. A plasmid that carries a well-specific Fv is
+ * made once per well. A plasmid that carries only a shared chain is made once.
+ */
+export function constructsProduced(chains: Chain[], scheme: ConstructScheme, molecules: number): number {
+  if (molecules < 1 || scheme.count < 1 || !chains.length) return 0;
+  let perWell = 0;
+  let shared = 0;
+  for (let index = 0; index < scheme.count; index++) {
+    const group = chains.slice(index * scheme.perPlasmid, (index + 1) * scheme.perPlasmid);
+    if (!group.length) continue;
+    if (group.some(chainVariesPerWell)) perWell += 1;
+    else shared += 1;
+  }
+  return perWell * molecules + shared;
+}
+
 function optionsFor(chain: Chain, vectors: Vector[]): Vector[] {
   const ids = new Set(chain.vectors);
   return vectors

@@ -134,6 +134,17 @@ export function designForFormat(format: Format, chains: Chain[]): PadDesign {
   };
 }
 
+/** Same architecture, different Fv. A repeated format in the next well is still a different molecule. */
+export function fvForWell(design: PadDesign, well: string): PadDesign {
+  const mark = (target: string) => (target ? `${target} · ${well}` : target);
+  return {
+    ...design,
+    targets: [mark(design.targets[0]), mark(design.targets[1])],
+    cTargetLeft: design.cTargetLeft.map(mark),
+    cTargetRight: design.cTargetRight.map(mark),
+  };
+}
+
 /**
  * The pad resolves to a catalog format. Ties keep the lowest-rank format, so a
  * plain Fab / Homo-Fc design lands on wild-type IgG rather than an ADC.
