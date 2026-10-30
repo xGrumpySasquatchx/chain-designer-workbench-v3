@@ -1,8 +1,6 @@
 import { isUniversalLight, preferredTranslation, type FvRegion, type NucleotideTranslation } from '../model/sequences';
 import type { Chain } from '../model/types';
 
-const OPEN_CHOICES = 4;
-
 export function PreferredSequences({
   groups,
   picks,
@@ -19,44 +17,32 @@ export function PreferredSequences({
     <section className="ratio-plan" aria-label="Preferred sequences">
       <h3>Preferred sequences</h3>
       <p className="sm">
-        Each well carries its own amino-acid sequence. When that same sequence has more than one nucleotide
-        string on record, choose the one to express. The preferred string stays marked.
+        Check the nucleotide string to express for each amino-acid sequence. The preferred string stays marked.
       </p>
       {shown.map(({ chain, regions }) => {
         const choices = regions.filter((region) => region.nucleotides.length > 1);
         const singles = regions.filter((region) => region.nucleotides.length === 1);
-        const lead = choices.slice(0, OPEN_CHOICES);
-        const rest = choices.slice(OPEN_CHOICES);
         return (
           <div className="seq-chain" key={chain.id}>
             <h4>
               {chain.name}
               {isUniversalLight(chain) ? <span className="pref-tag">Universal light chain</span> : null}
+              <span className="sm">
+                {regions.length} region{regions.length === 1 ? '' : 's'}
+                {choices.length ? ` · ${choices.length} with a choice` : ''}
+              </span>
             </h4>
-            <p className="sm">
-              {regions.length} amino-acid region{regions.length === 1 ? '' : 's'}
-              {choices.length
-                ? `, ${choices.length} with more than one nucleotide sequence`
-                : ', each with one registered nucleotide sequence'}
-              .
-            </p>
-            {lead.map((region) => (
-              <RegionChoice key={region.id} region={region} picks={picks} onPick={onPick} />
-            ))}
-            {rest.length ? (
-              <details className="seq-more">
-                <summary>
-                  {rest.length} more region{rest.length === 1 ? '' : 's'} with more than one nucleotide sequence
-                </summary>
-                {rest.map((region) => (
+            {choices.length ? (
+              <div className="seq-list" role="table" aria-label={`Nucleotide choices for ${chain.name}`}>
+                {choices.map((region) => (
                   <RegionChoice key={region.id} region={region} picks={picks} onPick={onPick} />
                 ))}
-              </details>
+              </div>
             ) : null}
             {singles.length ? (
-              <p className="sm seq-aa">
-                {singles.length} region{singles.length === 1 ? '' : 's'} with one registered nucleotide string.
-                {` ${singles[0].label}: ${singles[0].aminoAcid}`}
+              <p className="sm seq-single" title={singles.map((region) => `${region.label}: ${region.aminoAcid}`).join('\n')}>
+                {singles.length} region{singles.length === 1 ? '' : 's'} with one registered string.
+                {` ${singles[0].label}`}
               </p>
             ) : null}
           </div>
@@ -78,17 +64,19 @@ function RegionChoice({
   const preferred = preferredTranslation(region.nucleotides);
   const selected = region.nucleotides.find((item) => item.id === picks[region.id])?.id ?? preferred?.id ?? '';
   return (
-    <div className="seq-region">
-      <h5>{region.label}</h5>
-      <p className="seq-aa" title={region.aminoAcid}>
-        {region.aminoAcid}
-      </p>
+    <div className="seq-row" role="row">
+      <div className="seq-id">
+        <span className="nm">{region.label}</span>
+        <span className="seq-aa" title={region.aminoAcid}>
+          {region.aminoAcid}
+        </span>
+      </div>
       <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${region.label}`}>
         {region.nucleotides.map((item) => (
-          <SequenceOption
+          <SequenceCheck
             key={item.id}
             item={item}
-            pressed={item.id === selected}
+            checked={item.id === selected}
             onPick={() => onPick(region.id, item.id)}
           />
         ))}
@@ -97,27 +85,32 @@ function RegionChoice({
   );
 }
 
-function SequenceOption({
+function SequenceCheck({
   item,
-  pressed,
+  checked,
   onPick,
 }: {
   item: NucleotideTranslation;
-  pressed: boolean;
+  checked: boolean;
   onPick: () => void;
 }) {
-  const dna = item.dna ? `${item.dna.slice(0, 24)}…` : '';
+  const detail = [
+    `Characterized on ${item.molecules} molecule${item.molecules === 1 ? '' : 's'}`,
+    item.contribution,
+    item.dna ?? item.basis,
+  ].join('\n');
   return (
-    <button type="button" className="seq-option" aria-pressed={pressed} onClick={onPick} title={item.dna}>
-      <span className="seq-top">
-        <span className="nm">{item.name}</span>
-        {item.preferred ? <span className="pref-tag">Preferred</span> : null}
-        <span className="sm">
-          Characterized on {item.molecules} molecule{item.molecules === 1 ? '' : 's'}
-        </span>
-      </span>
-      <span className="sm">{item.contribution}</span>
-      {dna ? <span className="seq-aa">{dna}</span> : <span className="sm">{item.basis}</span>}
-    </button>
+    <label className="seq-check" title={detail}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => {
+          if (event.target.checked) onPick();
+        }}
+      />
+      <span>{item.name}</span>
+      {item.preferred ? <span className="pref-tag">Preferred</span> : null}
+      <span className="n">{item.molecules}</span>
+    </label>
   );
 }
