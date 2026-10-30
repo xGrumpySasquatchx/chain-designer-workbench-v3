@@ -167,6 +167,34 @@ export function findUseCase(id: UseCaseId): UseCase {
   return USE_CASES.find((useCase) => useCase.id === id) ?? USE_CASES[0];
 }
 
+/** Ways to split one molecule's chains across plasmids. 4 chains can be 1×1×1×1, 2×2, or one plasmid. */
+export interface ConstructScheme {
+  count: number;
+  perPlasmid: number;
+  label: string;
+  note: string;
+}
+
+export function constructSchemes(chainCount: number): ConstructScheme[] {
+  if (chainCount < 1) return [];
+  const schemes: ConstructScheme[] = [];
+  for (let count = 1; count <= chainCount; count++) {
+    if (chainCount % count !== 0) continue;
+    const perPlasmid = chainCount / count;
+    const label = Array.from({ length: count }, () => String(perPlasmid)).join('×');
+    const note =
+      perPlasmid === 1
+        ? count === 1
+          ? 'One construct carries the chain.'
+          : `${label} puts one chain on each plasmid, so the ratio can be titrated.`
+        : count === 1
+          ? `One construct carries all ${perPlasmid} chains. Inventory plasmids carry one chain, so this scheme needs a multi-gene backbone.`
+          : `${label} puts ${perPlasmid} chains on each of ${count} plasmids. Inventory plasmids carry one chain, so this scheme needs a multi-gene backbone.`;
+    schemes.push({ count, perPlasmid, label, note });
+  }
+  return schemes;
+}
+
 function optionsFor(chain: Chain, vectors: Vector[]): Vector[] {
   const ids = new Set(chain.vectors);
   return vectors

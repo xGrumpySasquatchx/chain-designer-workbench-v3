@@ -17,6 +17,8 @@ export function LevelTabs({
   builds,
   requestCount,
   expressionCount,
+  chainCount,
+  mutationCount,
   onGrain,
 }: {
   grain: Grain;
@@ -25,14 +27,16 @@ export function LevelTabs({
   builds: number;
   requestCount: string;
   expressionCount: string;
+  chainCount?: string;
+  mutationCount?: string;
   onGrain: (g: Grain) => void;
 }) {
   const slots = buildSlots(seed, model.buildV).length;
   const counts: Record<Grain, string> = {
     fmt: requestCount,
-    chn: `${model.buildC.size} / ${model.reachC.size}`,
+    chn: chainCount ?? `${model.buildC.size} / ${model.reachC.size}`,
     var: `${slots} slot${slots === 1 ? '' : 's'}${builds ? ` · ${builds}` : ''}`,
-    mut: `${model.buildM.size} / ${model.reachM.size}`,
+    mut: mutationCount ?? `${model.buildM.size} / ${model.reachM.size}`,
     con: `${model.buildV.size} / ${model.reachV.size}`,
     exp: expressionCount,
   };

@@ -61,6 +61,20 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .infer-dl dd{margin:0}
 .infer-uses{display:flex; flex-wrap:wrap; gap:6px}
 .infer-uses .btn[aria-pressed="true"]{background:var(--grain-bg); border-color:transparent; color:var(--grain)}
+.construct-count{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0}
+.construct-count .btn{display:flex; flex-direction:column; align-items:flex-start; gap:1px; min-width:88px}
+.construct-count .btn[aria-pressed="true"]{background:var(--grain-bg); border-color:transparent; color:var(--grain)}
+.construct-count .count-n{font-weight:650}
+.construct-split{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px}
+.construct-split li{display:flex; gap:8px; align-items:baseline}
+.seq-chain{margin-top:10px}
+.seq-chain h4{margin:0 0 6px; font-size:12px; font-weight:650; display:flex; gap:8px; align-items:baseline}
+.seq-options{display:flex; flex-direction:column; gap:6px}
+.seq-option{appearance:none; text-align:left; border:1px solid var(--rule); background:var(--card); color:var(--ink); font:inherit; border-radius:6px; padding:8px; cursor:pointer}
+.seq-option[aria-pressed="true"]{border-color:var(--grain); background:var(--grain-bg)}
+.seq-top{display:flex; flex-wrap:wrap; gap:8px; align-items:baseline}
+.seq-top .nm{font-weight:650}
+.pref-tag{font-size:11px; font-weight:650; color:var(--in)}
 .infer-hosts{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px}
 .fit{border-radius:6px; padding:6px 8px; display:flex; flex-direction:column; gap:2px}
 .fit-name{font-weight:600}

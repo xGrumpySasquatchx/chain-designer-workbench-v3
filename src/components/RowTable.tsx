@@ -57,6 +57,7 @@ export function RowTable({
   text,
   notice,
   lead,
+  inferred,
   onMark,
   onHideOut,
 }: {
@@ -72,6 +73,8 @@ export function RowTable({
   text: (row: Row) => string;
   notice?: string;
   lead?: ReactNode;
+  /** The panel's molecule already fixed these rows. */
+  inferred?: boolean;
   onMark: (id: string, v: Mark) => void;
   onHideOut: () => void;
 }) {
@@ -80,7 +83,7 @@ export function RowTable({
   const items = rows
     .filter((r) => {
       const { b } = bucketOf(grain, r.id, marks[r.id], model, String(r.tier ?? ''));
-      if (hideOut && b === 2) return false;
+      if (!inferred && hideOut && b === 2) return false;
       for (const k of Object.keys(facetSel)) {
         const st = facetSel[k];
         if (st && st.size && !rowHasFacet(r, k, st)) return false;
@@ -88,7 +91,11 @@ export function RowTable({
       if (q && !text(r).toLowerCase().includes(q)) return false;
       return true;
     })
-    .map((r) => ({ r, ...bucketOf(grain, r.id, marks[r.id], model, String(r.tier ?? '')) }))
+    .map((r) =>
+      inferred
+        ? { r, b: 0 as const, label: 'Inferred from each well' }
+        : { r, ...bucketOf(grain, r.id, marks[r.id], model, String(r.tier ?? '')) },
+    )
     .sort((a, z) => {
       if (a.b !== z.b) return a.b - z.b;
       if (sort) {
@@ -101,8 +108,8 @@ export function RowTable({
       return (a.r.rank || 999) - (z.r.rank || 999) || a.r.id.localeCompare(z.r.id);
     });
 
-  const nOut = rows.filter((r) => bucketOf(grain, r.id, marks[r.id], model).b === 2).length;
-  const ncol = cols.length + 2;
+  const nOut = inferred ? 0 : rows.filter((r) => bucketOf(grain, r.id, marks[r.id], model).b === 2).length;
+  const ncol = cols.length + (inferred ? 1 : 2);
 
   let lastGroup: string | null = null;
   const body: ReactNode[] = [];
@@ -115,8 +122,10 @@ export function RowTable({
         </tr>,
       );
     }
-    const s = marks[it.r.id];
-    const claimed =
+    const s = inferred ? undefined : marks[it.r.id];
+    const claimed = inferred
+      ? false
+      :
       grain === 'chn'
         ? model.claimC.has(it.r.id)
         : grain === 'con'
@@ -143,37 +152,40 @@ export function RowTable({
     }
     const dis = it.b === 2 && s !== 'out';
     const st = s === 'out' ? 'out' : it.b === 2 ? 'unreach' : s === 'in' ? 'in' : claimed ? 'claim' : '';
+    const inferredStatus = <span className="pill">Inferred</span>;
     body.push(
-      <tr key={it.r.id} data-s={st}>
-        <td>
-          <span className={`tri ${claimed && s !== 'in' ? 'claimed' : ''}`}>
-            <button
-              type="button"
-              data-v="in"
-              aria-pressed={s === 'in'}
-              disabled={dis}
-              title="Add"
-              onClick={() => onMark(it.r.id, 'in')}
-            >
-              ✓
-            </button>
-            <button
-              type="button"
-              data-v="out"
-              aria-pressed={s === 'out'}
-              title="Rule out"
-              onClick={() => onMark(it.r.id, 'out')}
-            >
-              ×
-            </button>
-          </span>
-        </td>
+      <tr key={it.r.id} data-s={inferred ? 'claim' : st}>
+        {inferred ? null : (
+          <td>
+            <span className={`tri ${claimed && s !== 'in' ? 'claimed' : ''}`}>
+              <button
+                type="button"
+                data-v="in"
+                aria-pressed={s === 'in'}
+                disabled={dis}
+                title="Add"
+                onClick={() => onMark(it.r.id, 'in')}
+              >
+                ✓
+              </button>
+              <button
+                type="button"
+                data-v="out"
+                aria-pressed={s === 'out'}
+                title="Rule out"
+                onClick={() => onMark(it.r.id, 'out')}
+              >
+                ×
+              </button>
+            </span>
+          </td>
+        )}
         {cols.map((c) => (
           <td key={c.h} className={c.cls || ''}>
             {c.cell(it.r)}
           </td>
         ))}
-        <td>{status}</td>
+        <td>{inferred ? inferredStatus : status}</td>
       </tr>,
     );
   });
@@ -190,7 +202,11 @@ export function RowTable({
       <div className="panel-h">
         <h2>{title}</h2>
         <span className="count">
-          {nOut ? `${rows.length - nOut} available, ${nOut} ruled out` : `${rows.length} documents`}
+          {inferred
+            ? `${rows.length} inferred`
+            : nOut
+              ? `${rows.length - nOut} available, ${nOut} ruled out`
+              : `${rows.length} documents`}
         </span>
         <span className="flex-1" />
         {nOut > 0 && (
@@ -204,7 +220,7 @@ export function RowTable({
         <table>
           <thead>
             <tr>
-              <th style={{ width: 86 }}>In / out</th>
+              {inferred ? null : <th style={{ width: 86 }}>In / out</th>}
               {cols.map((c) => {
                 const active = sort?.h === c.h;
                 const aria = active ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none';

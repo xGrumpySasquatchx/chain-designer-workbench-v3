@@ -41,6 +41,8 @@ export function defaultState(): State {
     expressionRegistrations: [],
     chainRatios: {},
     constructGroups: {},
+    constructCount: null,
+    sequencePicks: {},
   };
 }
 
@@ -93,6 +95,10 @@ export function loadState(): State {
     }
     if (isRatioMap(r.chainRatios)) base.chainRatios = r.chainRatios;
     if (isGroupMap(r.constructGroups)) base.constructGroups = r.constructGroups;
+    if (typeof r.constructCount === 'number' && Number.isInteger(r.constructCount) && r.constructCount >= 1) {
+      base.constructCount = r.constructCount;
+    }
+    if (isGroupMap(r.sequencePicks)) base.sequencePicks = r.sequencePicks;
   } catch {
     return defaultState();
   }

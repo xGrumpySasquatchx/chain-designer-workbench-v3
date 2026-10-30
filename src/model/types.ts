@@ -305,6 +305,10 @@ export interface State {
   chainRatios: Record<string, number>;
   /** Construct id to combination key. Constructs that share a key are co-transfected. */
   constructGroups: Record<string, string>;
+  /** How many constructs express one molecule. Null until the scientist picks a scheme. */
+  constructCount: number | null;
+  /** Chain id to the nucleotide translation chosen for that chain. */
+  sequencePicks: Record<string, string>;
 }
 
 export interface Model {

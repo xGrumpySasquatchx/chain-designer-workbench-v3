@@ -7,6 +7,7 @@ import vregionsJson from './data/vregions.json';
 import { BuildPanel } from './components/BuildPanel';
 import { ChainRatios } from './components/ChainRatios';
 import { ConstructCombinations } from './components/ConstructCombinations';
+import { ConstructCount } from './components/ConstructCount';
 import { ConstructLibrary } from './components/ConstructLibrary';
 import { ExpressionBench, ExpressionRail } from './components/ExpressionBench';
 import { FacetRail, type FacetDef } from './components/FacetRail';
@@ -16,6 +17,7 @@ import { RowTable, type Col, type Row } from './components/RowTable';
 import { FoldBtn, ResizeGrip, useSidePanels } from './components/SidePanels';
 import { PanelPick, RequestBench, RequestRail } from './components/RequestBench';
 import { KindSwitch, ProteinBench } from './components/ProductKind';
+import { PreferredSequences } from './components/PreferredSequences';
 import { VariableRegions } from './components/VariableRegions';
 import { VLibraryRail } from './components/VLibraryRail';
 import {
@@ -39,6 +41,7 @@ import {
   registrationMatches,
   withHost,
 } from './model/expression';
+import { constructSchemes, polypeptides } from './model/inference';
 import { stockStatus } from './model/inventory';
 import {
   archetypeIdsOf,
@@ -385,6 +388,39 @@ export default function App() {
   );
   const activePanel = panelById(book, state.activePanelId);
   const panelFormats = formatIdsOf(book, state.activePanelId);
+  const inferred = useMemo(() => {
+    const ids = new Set<string>();
+    const names: string[] = [];
+    let shown: Chain[] = [];
+    let perMolecule = 0;
+    if (!activePanel) return { ids, names, perMolecule, chains: shown };
+    const formatIds = [
+      ...new Set(
+        book.molecules
+          .filter((molecule) => molecule.panelId === activePanel.id)
+          .map((molecule) => molecule.formatId),
+      ),
+    ];
+    for (const formatId of formatIds) {
+      const format = seed.formats.find((item) => item.id === formatId);
+      if (!format) continue;
+      const mine = seed.chains.filter((chain) => format.chains.includes(chain.id));
+      const chains = polypeptides(format, mine);
+      if (chains.length >= perMolecule) {
+        perMolecule = chains.length;
+        shown = chains;
+        names.splice(0, names.length, ...chains.map((chain) => chain.name));
+      }
+      chains.forEach((chain) => ids.add(chain.id));
+    }
+    return { ids, names, perMolecule, chains: shown };
+  }, [activePanel, book.molecules]);
+  const resolvedSel = useMemo(() => {
+    if (!inferred.ids.size) return state.sel;
+    const chn = { ...state.sel.chn };
+    for (const id of inferred.ids) chn[id] = 'in';
+    return { ...state.sel, chn };
+  }, [state.sel, inferred.ids]);
 
   const fmtFocus = useMemo(() => {
     if (panelFormats) return panelFormats;
@@ -394,14 +430,22 @@ export default function App() {
     );
   }, [facetSel.fmt, query.fmt, panelFormats]);
 
-  const panelChains = archetypeIdsOf(book, state.activePanelId);
-  const panelConstructs = panelConstructIds(book, state.activePanelId);
+  const panelChains = inferred.ids.size ? inferred.ids : archetypeIdsOf(book, state.activePanelId);
+  const panelConstructs = useMemo(() => {
+    const all = panelConstructIds(book, state.activePanelId);
+    if (!all || !inferred.ids.size) return all;
+    const allowed = new Set<string>();
+    for (const id of inferred.ids) {
+      seed.chains.find((chain) => chain.id === id)?.vectors.forEach((vectorId) => allowed.add(vectorId));
+    }
+    return new Set([...all].filter((id) => allowed.has(id)));
+  }, [book, state.activePanelId, inferred.ids]);
   const panelMutations = panelMutationIds(book, state.activePanelId);
   const model = useMemo(() => {
     const next = applyMutations(
-      resolve(seed, state.sel, fmtFocus != null ? { formats: fmtFocus } : undefined),
+      resolve(seed, resolvedSel, fmtFocus != null ? { formats: fmtFocus } : undefined),
       seed,
-      state.sel,
+      resolvedSel,
       mutations,
     );
     const keep = (set: Set<string>, allowed: Set<string> | undefined) => {
@@ -418,7 +462,7 @@ export default function App() {
     keep(next.buildM, panelMutations);
     keep(next.claimM, panelMutations);
     return next;
-  }, [state.sel, fmtFocus, panelChains, panelConstructs, panelMutations]);
+  }, [resolvedSel, fmtFocus, panelChains, panelConstructs, panelMutations]);
   const slots = useMemo(() => buildSlots(seed, model.buildV), [model.buildV]);
   const vByVec = useMemo(
     () => insertsByVector(slots, state.variants, state.assign),
@@ -494,6 +538,17 @@ export default function App() {
     };
   });
   const pendingPanel = !!activePanel && activePanel.moleculeIds.length === 0;
+  const panelReady = !!activePanel && !pendingPanel && inferred.perMolecule > 0;
+  const moleculeCount = activePanel
+    ? book.molecules.filter((molecule) => molecule.panelId === activePanel.id).length
+    : 0;
+  const schemes = constructSchemes(inferred.perMolecule);
+  const expressWith = schemes.some((scheme) => scheme.count === state.constructCount)
+    ? (state.constructCount ?? 0)
+    : (schemes[schemes.length - 1]?.count ?? 0);
+  const inferredMutations = panelMutations
+    ? mutations.filter((mutation) => panelMutations.has(mutation.id)).length
+    : 0;
   const waiting = (!activePanel || pendingPanel) && (grain === 'chn' || grain === 'mut' || grain === 'con');
   const rows: Row[] = waiting
     ? []
@@ -513,10 +568,17 @@ export default function App() {
         ? 'Mutation sets'
         : 'Constructs';
   const notice = pendingPanel
-    ? `${openRequest ? `${openRequest.id} · ` : ''}${activePanel.id} is assigned. Add molecules on the Request tab, then the chains, mutations, and constructs follow this panel.`
+    ? `${openRequest ? `${openRequest.id} · ` : ''}${activePanel.id} is assigned. Add molecules on the Request tab. The molecule in each well fixes the chains and mutations.`
     : waiting
-      ? 'Select a panel registered in Luma. The molecules in that panel decide which chains, mutations, and constructs you can use.'
+      ? 'Select a panel registered in Luma. The molecule in each well fixes the chains and mutations.'
       : undefined;
+  const chainSentence = panelReady
+    ? `${inferred.perMolecule} polypeptide${inferred.perMolecule === 1 ? '' : 's'} per molecule${
+        moleculeCount > 1
+          ? `. This panel's ${moleculeCount} molecules are ${moleculeCount * inferred.perMolecule} chain instances, each well with its own Fv`
+          : ''
+      }. ${inferred.names.join('; ')}.`
+    : '';
 
   const openPanel = (id: string) => {
     const archetypes = archetypeIdsOf(book, id);
@@ -663,6 +725,8 @@ export default function App() {
                   .join(' · ')
               : 'choose'
           }
+          chainCount={panelReady ? `${inferred.perMolecule} inferred` : undefined}
+          mutationCount={panelReady ? `${inferredMutations} inferred` : undefined}
           onGrain={(g) => setState((s) => ({ ...s, grain: g }))}
         />
         <input
@@ -710,13 +774,19 @@ export default function App() {
             ? `${book.panels.length} panels registered in Luma`
             : grain === 'chn'
               ? activePanel
-                ? `${activePanel.name}: ${model.buildC.size} in build, ${model.reachC.size} available`
+                ? panelReady
+                  ? `${activePanel.name}: ${inferred.perMolecule} chain${inferred.perMolecule === 1 ? '' : 's'} inferred from each well`
+                  : 'Add molecules on the Request tab'
                 : 'Select a registered panel'
 
               : grain === 'var'
                 ? `${slots.length} slots, ${variantList(state.variants).length || 1} builds`
                 : grain === 'mut'
-                  ? `${model.buildM.size} in build, ${model.reachM.size} available`
+                  ? panelReady
+                    ? `${inferredMutations} mutation${inferredMutations === 1 ? '' : 's'} inferred from each well`
+                    : activePanel
+                      ? 'Add molecules on the Request tab'
+                      : 'Select a registered panel'
                   : grain === 'exp'
                     ? [
                         state.expression.mode ? scenarioById(state.expression.mode).name : 'Choose transient or stable',
@@ -729,7 +799,9 @@ export default function App() {
                       ]
                         .filter(Boolean)
                         .join(' · ')
-                    : `${model.buildV.size} in build, ${model.reachV.size} available`}
+                    : expressWith
+                      ? `Express each molecule with ${expressWith} construct${expressWith === 1 ? '' : 's'}`
+                      : `${model.buildV.size} in build, ${model.reachV.size} available`}
         </span>
         <span className="stat-grow" />
         <span>EU for Fc and CH1 · Kabat / IMGT for V domains · selections stay in this browser</span>
@@ -1014,9 +1086,43 @@ export default function App() {
             hideOut={state.hideOut}
             text={text}
             notice={notice}
+            inferred={panelReady && (grain === 'chn' || grain === 'mut')}
             lead={
-              grain === 'con' ? (
+              grain === 'chn' && panelReady ? (
                 <>
+                  <section className="ratio-plan" aria-label="Inferred chains">
+                    <h3>Inferred from each well</h3>
+                    <p className="sm">{chainSentence}</p>
+                  </section>
+                  <PreferredSequences
+                    chains={inferred.chains}
+                    registered={Object.fromEntries(
+                      book.chains.map((chain) => [chain.archetypeId, chain.moleculeIds.length]),
+                    )}
+                    picks={state.sequencePicks}
+                    onPick={(chainId, translationId) =>
+                      setState((s) => ({
+                        ...s,
+                        sequencePicks: { ...s.sequencePicks, [chainId]: translationId },
+                      }))
+                    }
+                  />
+                </>
+              ) : grain === 'mut' && panelReady ? (
+                <section className="ratio-plan" aria-label="Inferred mutations">
+                  <h3>Inferred from each well</h3>
+                  <p className="sm">The molecule in each well fixes these mutations.</p>
+                </section>
+              ) : grain === 'con' ? (
+                <>
+                  {schemes.length ? (
+                    <ConstructCount
+                      schemes={schemes}
+                      selected={expressWith}
+                      chainNames={inferred.names}
+                      onSelect={(count) => setState((s) => ({ ...s, constructCount: count }))}
+                    />
+                  ) : null}
                   <ConstructCombinations
                     combinations={combinations}
                     inserts={Object.fromEntries(seed.vectors.map((vector) => [vector.id, vector.insert]))}
@@ -1061,7 +1167,7 @@ export default function App() {
         <BuildPanel
           seed={seed}
           model={model}
-          sel={state.sel}
+          sel={panelReady ? { ...state.sel, chn: {}, mut: {} } : state.sel}
           variants={state.variants}
           assign={state.assign}
           library={state.library}

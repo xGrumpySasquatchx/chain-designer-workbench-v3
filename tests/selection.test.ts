@@ -8,7 +8,8 @@ import { compileSearch, panelMatches, searchCatalog, treeCatalog } from '../src/
 import { locationLine, stockLine, stockStatus } from '../src/model/inventory';
 import { applyMutations, mutationRelevant, specificVectorIds } from '../src/model/mutations';
 import { EMPTY_DESIGN, designForFormat, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
-import { classifyFormat, polypeptides, rankConstructs } from '../src/model/inference';
+import { classifyFormat, constructSchemes, polypeptides, rankConstructs } from '../src/model/inference';
+import { nucleotideTranslations } from '../src/model/sequences';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -596,6 +597,37 @@ check(
     collided.some((row) => row.markers === 'Fail') &&
     collided[0]?.markers === 'Pass' &&
     collided[0]?.vectors.some((vector) => vector.marker === 'Blasticidin'),
+);
+check(
+  'a molecule can be expressed as one plasmid per chain or as fewer multi-chain plasmids',
+  constructSchemes(polypeptides(iggFmt.format, iggFmt.chains).length)
+    .map((scheme) => scheme.label)
+    .join(',') === '2,1×1' &&
+    constructSchemes(polypeptides(kihFmt.format, kihFmt.chains).length)
+      .map((scheme) => scheme.label)
+      .join(',') === '3,1×1×1' &&
+    constructSchemes(4)
+      .map((scheme) => `${scheme.count}:${scheme.label}`)
+      .join(',') === '1:4,2:2×2,4:1×1×1×1' &&
+    constructSchemes(0).length === 0,
+);
+const commonLight = seed.chains.find((chain) => chain.id === 'CH-20');
+const registeredHeavy = seed.chains.find((chain) => chain.id === 'CH-01');
+const commonTranslations = nucleotideTranslations(commonLight!, 52);
+const heavyTranslations = nucleotideTranslations(registeredHeavy!, 49);
+check(
+  'a universal light chain has more than one characterized nucleotide translation, and one of them is preferred',
+  commonTranslations.length > 1 &&
+    commonTranslations.filter((item) => item.preferred).length === 1 &&
+    commonTranslations.every((item) => item.molecules > 0 && item.contribution.length > 0),
+  commonTranslations.map((item) => item.name).join(', '),
+);
+check(
+  'a chain registered before has one preferred translation, and an unregistered chain has none',
+  heavyTranslations.length === 1 &&
+    heavyTranslations[0].preferred &&
+    heavyTranslations[0].molecules === 49 &&
+    nucleotideTranslations(registeredHeavy!, 0).length === 0,
 );
 const matched = matchFormat(seed, fabDesign);
 check('a Fab / Homo-Fc design matches wild-type IgG', matched?.id === 'F-001', matched?.id);
