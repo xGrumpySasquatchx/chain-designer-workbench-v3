@@ -100,6 +100,8 @@ export function nucleotideTranslations(chain: Chain, registeredMolecules: number
 /** One amino-acid building block on a chain, and the nucleotide strings registered for it. */
 export interface FvRegion {
   id: string;
+  /** Molecule or panel id this protein inherited. Unique per designed protein. */
+  uid: string;
   chainId: string;
   kind: string;
   label: string;
@@ -312,6 +314,15 @@ export function insertsOf(chain: Chain): InsertSpec[] {
   return [{ kind: 'ORF', label: slots, shared: false }];
 }
 
+/** The id assigned when the panel was built, kept on the protein that well produced. */
+function proteinUid(molecule: LumaMolecule, chain: Chain, insert: InsertSpec, inserts: InsertSpec[], index: number): string {
+  const chainId = molecule.chainIds.find((id) => id === chain.id || id.endsWith(`-${chain.id}`)) ?? `LCH-${chain.id}`;
+  if (insert.shared) return `${molecule.panelId} · ${chainId}`;
+  const repeated = inserts.filter((item) => item.label === insert.label).length > 1;
+  const slot = inserts.length > 1 ? ` · ${insert.label}${repeated ? ` ${index + 1}` : ''}` : '';
+  return `${molecule.id} · ${chainId}${slot}`;
+}
+
 function wellOf(molecule: LumaMolecule): string {
   for (const target of molecule.design.targets) {
     const marked = / · ([A-H]\d+)$/.exec(target);
@@ -382,6 +393,7 @@ export function chainRegions(chain: Chain, molecules: LumaMolecule[]): FvRegion[
           : codonVersions(id, aminoAcid, variants);
       regions.push({
         id,
+        uid: proteinUid(molecule, chain, insert, inserts, index),
         chainId: chain.id,
         kind: insert.kind,
         label: well ? `${insert.label} · ${binder} · ${well}` : `${insert.label} · ${binder || 'shared'}`,

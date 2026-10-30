@@ -682,7 +682,10 @@ const designed = seed.chains.find((chain) => chain.id === 'CH-41');
 const stump = seed.chains.find((chain) => chain.id === 'CH-17');
 const muteinWells = book.molecules.filter((molecule) => molecule.formatId === 'F-050').slice(0, 6);
 const muteinRegions = chainRegions(mutein!, muteinWells);
-const designedRegions = chainRegions(designed!, book.molecules.filter((molecule) => molecule.formatId === 'F-051').slice(0, 4));
+const designedWells = book.molecules.filter((molecule) => molecule.formatId === 'F-051').slice(0, 4);
+const designedRegions = chainRegions(designed!, designedWells);
+const holeChain = seed.chains.find((chain) => chain.id === 'CH-42');
+const holeRegions = chainRegions(holeChain!, designedWells);
 const sharedLight = chainRegions(commonLight!, iggWells);
 check(
   'each well has its own amino-acid Fv, and some of those Fvs have more than one nucleotide string',
@@ -716,7 +719,13 @@ check(
     muteinRegions.every((region) => region.kind === 'Mutein' && region.aminoAcid.length === 48) &&
     designedRegions.length > 0 &&
     designedRegions.every((region) => region.kind === 'De novo' && region.aminoAcid.length === 48) &&
-    insertsOf(stump!).length === 0,
+    insertsOf(stump!).length === 0 &&
+    designedRegions.length === designedWells.length &&
+    holeRegions.length === designedWells.length &&
+    new Set([...designedRegions, ...holeRegions].map((region) => region.uid)).size ===
+      designedRegions.length + holeRegions.length &&
+    designedRegions.every((region, index) => region.uid === `${designedWells[index].id} · LCH-CH-41`) &&
+    holeRegions.every((region, index) => region.uid === `${designedWells[index].id} · LCH-CH-42`),
 );
 check(
   'a universal light chain is one amino-acid sequence with more than one nucleotide string',
