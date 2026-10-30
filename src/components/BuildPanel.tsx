@@ -1,0 +1,450 @@
+import { useState, type ReactNode } from 'react';
+import { SrcFolder } from './FacetRail';
+import { buildListText, gaalCsv, gaalJobs } from '../model/gaal';
+import { assignedInserts, parseLibrary, variantList } from '../model/library';
+import { backboneIds, buildSlots, slotChip } from '../model/slots';
+import type { Grain, Model, Mutation, Preset, Seed, Sel } from '../model/types';
+
+function copy(text: string) {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+  return Promise.reject();
+}
+
+function SelectionFolders({
+  seed,
+  model,
+  variants,
+  assign,
+  library,
+  mutations,
+  requestItems,
+  expressionItems,
+  ratioByVector,
+  comboByVector,
+}: {
+  seed: Seed;
+  model: Model;
+  variants: string;
+  assign: Record<string, Record<string, string>>;
+  library: string;
+  mutations: Mutation[];
+  requestItems?: { id: string; label: string; note: string }[];
+  expressionItems?: { id: string; label: string; note: string }[];
+  ratioByVector?: Record<string, string>;
+  comboByVector?: Record<string, string>;
+}) {
+  const [open, setOpen] = useState<Set<string>>(
+    () => new Set(['fmt', 'chn', 'var', 'mut', 'con', 'exp']),
+  );
+  const toggle = (key: string) => {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+  const slots = buildSlots(seed, model.buildV);
+  const assigned = assignedInserts(slots, variants, assign);
+  const assignedNames = new Set(assigned.map((a) => a.label));
+  const libExtra = parseLibrary(library)
+    .filter((e) => e.name && !assignedNames.has(e.name))
+    .map((e) => ({
+      id: `lib:${e.name}`,
+      label: e.name,
+      note: e.t ? `${e.t} · in library` : 'in library',
+    }));
+  const vItems = [...assigned, ...libExtra];
+  const folders: {
+    k: string;
+    name: string;
+    items: { id: string; label: string; note: string }[];
+  }[] = [
+    {
+      k: 'fmt',
+      name: 'Request',
+      items: requestItems ?? [],
+    },
+    {
+      k: 'chn',
+      name: 'Chain',
+      items: seed.chains
+        .filter((c) => model.buildC.has(c.id))
+        .map((c) => ({ id: c.id, label: c.name, note: c.id })),
+    },
+    {
+      k: 'var',
+      name: 'Variable regions',
+      items: vItems,
+    },
+    {
+      k: 'mut',
+      name: 'Mutations',
+      items: mutations
+        .filter((m) => model.buildM.has(m.id))
+        .map((m) => ({ id: m.id, label: m.name, note: m.id })),
+    },
+    {
+      k: 'con',
+      name: 'Construct',
+      items: seed.vectors
+        .filter((v) => model.buildV.has(v.id))
+        .map((v) => ({
+          id: v.id,
+          label: v.id,
+          note: [v.insert, comboByVector?.[v.id], ratioByVector?.[v.id]].filter(Boolean).join(' · '),
+        })),
+    },
+    {
+      k: 'exp',
+      name: 'Expression',
+      items: expressionItems ?? [],
+    },
+  ].filter((folder) => folder.items.length > 0);
+
+  return (
+    <>
+      {folders.map((f) => (
+        <SrcFolder
+          key={f.k}
+          name={f.name}
+          count={f.items.length ? `(${f.items.length})` : '(0)'}
+          open={open.has(f.k)}
+          onToggle={() => toggle(f.k)}
+        >
+          {f.items.map((it) => (
+            <div className="src-doc viewer-sel" key={it.id}>
+              <span>{it.label}</span>
+              {it.note && it.note !== it.label ? <span className="sm">{it.note}</span> : null}
+            </div>
+          ))}
+        </SrcFolder>
+      ))}
+    </>
+  );
+}
+
+export function BuildPanel({
+  seed,
+  model,
+  sel,
+  variants,
+  assign,
+  library,
+  mutations,
+  presets,
+  requestItems,
+  expressionItems,
+  canRegister,
+  registered,
+  registerTitle,
+  onRegister,
+  ratioText,
+  combinationText,
+  ratioByVector,
+  comboByVector,
+  onPublish,
+  onReset,
+  onRuleOut,
+  onRestore,
+  onSavePreset,
+  onApplyPreset,
+  onDeletePreset,
+  expanded = true,
+  onFold,
+  fold,
+  grip,
+}: {
+  seed: Seed;
+  model: Model;
+  sel: Sel;
+  variants: string;
+  assign: Record<string, Record<string, string>>;
+  library: string;
+  mutations: Mutation[];
+  presets: Preset[];
+  requestItems?: { id: string; label: string; note: string }[];
+  expressionItems?: { id: string; label: string; note: string }[];
+  canRegister: boolean;
+  registered: boolean;
+  registerTitle: string;
+  onRegister: () => void;
+  ratioText?: string;
+  combinationText?: string;
+  ratioByVector?: Record<string, string>;
+  comboByVector?: Record<string, string>;
+  onPublish: () => void;
+  onReset: () => void;
+  onRuleOut: (id: string) => void;
+  onRestore: (grain: Grain, id: string) => void;
+  onSavePreset: (name: string) => void;
+  onApplyPreset: (i: number) => void;
+  onDeletePreset: (i: number) => void;
+  expanded?: boolean;
+  onFold?: () => void;
+  fold?: ReactNode;
+  grip?: ReactNode;
+}) {
+  const [presetName, setPresetName] = useState('');
+  const [copied, setCopied] = useState('');
+  const [view, setView] = useState<'info' | 'backbone' | 'handoff' | 'saved'>('info');
+  const V = Object.fromEntries(seed.vectors.map((v) => [v.id, v]));
+  const back = backboneIds(seed, model.buildV);
+  const slots = buildSlots(seed, model.buildV);
+  const n = variantList(variants).length;
+  const nv = n || 1;
+  const plas = back.filter((id) => V[id]?.needsInsert === 'Yes').length;
+  const outs: ['fmt' | 'chn' | 'con' | 'mut', string][] = [];
+  (['fmt', 'chn', 'con', 'mut'] as const).forEach((g) =>
+    Object.keys(sel[g]).forEach((id) => {
+      if (sel[g][id] === 'out') outs.push([g, id]);
+    }),
+  );
+
+  const flash = (label: string, text: string) => {
+    copy(text).catch(() => console.log(text));
+    setCopied(label);
+    window.setTimeout(() => setCopied(''), 1600);
+  };
+  const hasWork =
+    (requestItems?.length ?? 0) > 0 ||
+    model.buildC.size > 0 ||
+    model.buildM.size > 0 ||
+    model.buildV.size > 0 ||
+    (expressionItems?.length ?? 0) > 0 ||
+    Boolean(variants.trim() || library.trim()) ||
+    Object.values(assign).some((row) => Object.keys(row).length > 0) ||
+    outs.length > 0 ||
+    model.conflicts.length > 0;
+
+  return (
+    <aside className={`panel basket${expanded ? '' : ' is-folded'}`} aria-label="Document viewer">
+      <div className="panel-h" onClick={expanded ? undefined : onFold}>
+        <h2>Viewer</h2>
+        <div className="panel-h-act">
+          <button className="btn sm" type="button" onClick={onReset}>
+            Clear
+          </button>
+          {fold}
+        </div>
+      </div>
+      <div className="viewer-tabs" role="tablist" aria-label="Viewer">
+        {(
+          [
+            ['info', 'Info'],
+            ['backbone', 'Backbone'],
+            ['handoff', 'Text'],
+            ['saved', 'Saved'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            className="viewer-tab"
+            type="button"
+            role="tab"
+            aria-selected={view === id}
+            onClick={() => setView(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="viewer-body">
+      {view === 'info' ? (
+        <>
+          <SelectionFolders
+            seed={seed}
+            model={model}
+            variants={variants}
+            assign={assign}
+            library={library}
+            mutations={mutations}
+            requestItems={requestItems}
+            expressionItems={expressionItems}
+            ratioByVector={ratioByVector}
+            comboByVector={comboByVector}
+          />
+          {model.conflicts.slice(0, 4).map((c) => (
+            <div className="note" key={c}>
+              <strong>Check</strong> {c}
+            </div>
+          ))}
+          {outs.length > 0 ? (
+            <div className="sec">
+              <h3>Ruled out</h3>
+              <div className="chips">
+                {outs.map(([g, id]) => (
+                  <span className="chip o" key={`${g}-${id}`}>
+                    {id}
+                    <button type="button" title="Restore" onClick={() => onRestore(g, id)}>
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {hasWork ? (
+            <div className="sec" style={{ borderBottom: 0 }}>
+              <div className="row">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={!canRegister}
+                  title={registerTitle}
+                  onClick={() => {
+                    onRegister();
+                    setCopied('Register constructs');
+                    window.setTimeout(() => setCopied(''), 1600);
+                  }}
+                >
+                  {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
+                </button>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() =>
+                    flash(
+                      'Copy build list',
+                      buildListText(
+                        seed,
+                        model.inF,
+                        model.buildV,
+                        variants,
+                        outs.map(([, id]) => id),
+                        model.conflicts,
+                        ratioText,
+                        combinationText,
+                      ),
+                    )
+                  }
+                >
+                  {copied === 'Copy build list' ? 'Copied' : 'Copy build list'}
+                </button>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    onPublish();
+                    setCopied('Publish protein Report');
+                    window.setTimeout(() => setCopied(''), 1600);
+                  }}
+                >
+                  {copied === 'Publish protein Report' ? 'Downloaded' : 'Publish protein Report'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+      {view === 'backbone' && back.length ? (
+        <div className="sec" style={{ borderBottom: 0 }}>
+          <h3>Backbone</h3>
+          <div className="chips">
+              {back.map((id) => {
+                const sl = slotChip(V[id]);
+                return (
+                  <span className="chip" key={id}>
+                    {id}
+                    {sl ? <span style={{ opacity: 0.7 }}>{sl}</span> : null}
+                    <button type="button" title="Rule out" onClick={() => onRuleOut(id)}>
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+        </div>
+      ) : null}
+      {view === 'handoff' && slots.length ? (
+        <div className="sec" style={{ borderBottom: 0 }}>
+          <h3>Text view</h3>
+          <p style={{ margin: '0 0 7px', fontSize: 12, color: 'var(--ink-2)' }}>
+            {`${n ? `${n} build${n > 1 ? 's' : ''}` : '1 build'} x ${slots.length} V region${
+              slots.length > 1 ? 's' : ''
+            } = ${nv * slots.length} parts into ${nv * plas} assemblies.`}
+          </p>
+          <div className="row">
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() =>
+                flash('Copy GaaL job', JSON.stringify(gaalJobs(seed, model.buildV, variants, assign), null, 2))
+              }
+            >
+              {copied === 'Copy GaaL job' ? 'Copied' : 'Copy GaaL job'}
+            </button>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => flash('Copy as CSV', gaalCsv(seed, model.buildV, variants, assign))}
+            >
+              {copied === 'Copy as CSV' ? 'Copied' : 'Copy as CSV'}
+            </button>
+            <button
+              className="btn sm primary"
+              type="button"
+              disabled={!canRegister}
+              title={registerTitle}
+              onClick={() => {
+                onRegister();
+                setCopied('Register constructs');
+                window.setTimeout(() => setCopied(''), 1600);
+              }}
+            >
+              {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
+            </button>
+          </div>
+          <p style={{ margin: '7px 0 0', fontSize: 11.5, color: 'var(--ink-3)' }}>
+            Emits the assembly spec. Point it at your Geneious Prime library to run the builds.
+          </p>
+        </div>
+      ) : null}
+      {view === 'saved' && (back.length || presets.length) ? (
+        <div className="sec" style={{ borderBottom: 0 }}>
+          {back.length || presets.length ? <h3>Saved backbones</h3> : null}
+          {back.length ? (
+          <div className="row">
+            <input
+              className="search"
+              placeholder="Name this setup"
+              style={{ flex: 1, minWidth: 110 }}
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => {
+                if (!presetName.trim()) return;
+                onSavePreset(presetName.trim());
+                setPresetName('');
+              }}
+            >
+              Save
+            </button>
+          </div>
+          ) : null}
+          <div style={{ marginTop: back.length ? 6 : 0 }}>
+            {presets.length ? (
+              presets.map((p, i) => (
+                <div className="preset" key={`${p.name}-${i}`}>
+                  <span className="pn">{p.name}</span>
+                  <span className="pm">{p.n}p</span>
+                  <button className="btn sm" type="button" onClick={() => onApplyPreset(i)}>
+                    Apply
+                  </button>
+                  <button className="btn sm" type="button" title="Delete" onClick={() => onDeletePreset(i)}>
+                    ×
+                  </button>
+                </div>
+              ))
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      </div>
+      {expanded ? grip : null}
+    </aside>
+  );
+}
