@@ -20,7 +20,20 @@ import { groupConstructs, planCombinations, ungroupConstructs } from '../src/mod
 import { textPdf } from '../src/model/pdf';
 import { recipeLines } from '../src/model/recipe';
 import { planChainRatios } from '../src/model/ratio';
-import { PROTEIN_FAMILIES, PROTEIN_USES, PROTEINS, newProteinDraft, proteinById, proteinSearchText } from '../src/model/proteins';
+import {
+  PROTEIN_FAMILIES,
+  PROTEIN_USES,
+  PROTEINS,
+  aminoAcidSequence,
+  applyProteinHit,
+  crc64,
+  newProteinDraft,
+  parseUniProtSearch,
+  proteinById,
+  proteinSearchText,
+  searchInternalProteins,
+  uniProtHits,
+} from '../src/model/proteins';
 import { buildSlots, slotsFor } from '../src/model/slots';
 import { facetTokens, rowHasFacet } from '../src/model/facets';
 import type { InventoryBook, Mutation, Seed, Sel, VPanel, VRegion } from '../src/model/types';
@@ -1044,8 +1057,52 @@ check(
     proteinDraft.id === 'PRT-R001' &&
     proteinDraft.basisId === 'PRT-003' &&
     proteinDraft.family === 'human' &&
+    proteinDraft.sequence === null &&
     newProteinDraft([proteinDraft]).id === 'PRT-R002' &&
     proteinSearchText('Affibodies').includes(proteinSearchText('Affibody')),
+);
+
+const insulin =
+  'MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN';
+const insulinEntry = {
+  entryType: 'UniProtKB reviewed (Swiss-Prot)',
+  primaryAccession: 'P01308',
+  uniProtkbId: 'INS_HUMAN',
+  organism: { scientificName: 'Homo sapiens' },
+  proteinDescription: { recommendedName: { fullName: { value: 'Insulin' } } },
+  genes: [{ geneName: { value: 'INS' } }],
+  comments: [{ commentType: 'FUNCTION', texts: [{ value: 'Insulin decreases blood glucose concentration.' }] }],
+  sequence: { value: insulin, length: 110 },
+};
+const parsedInsulin = parseUniProtSearch({
+  results: [insulinEntry, { entryType: 'UniProtKB unreviewed (TrEMBL)', primaryAccession: 'Q6YK33', sequence: { value: 'MMM', length: 3 } }],
+});
+const insulinHit = uniProtHits(parsedInsulin)[0];
+const stored = applyProteinHit(newProteinDraft([]), insulinHit);
+const byName = searchInternalProteins('name', 'DARPin', []);
+const bySequence = searchInternalProteins('sequence', insulin.slice(0, 20), [stored]);
+check(
+  'a new protein can be found internally by name or sequence, and a UniProt entry brings its accession and sequence',
+  crc64(insulin) === 'C2C3B23B85E520E5' &&
+    aminoAcidSequence(`>sp|P01308\n${insulin}`) === insulin &&
+    aminoAcidSequence('DARPins') === null &&
+    parsedInsulin.length === 2 &&
+    parsedInsulin[0].accession === 'P01308' &&
+    parsedInsulin[0].entryName === 'INS_HUMAN' &&
+    parsedInsulin[0].gene === 'INS' &&
+    parsedInsulin[0].organism === 'Homo sapiens' &&
+    parsedInsulin[0].reviewed === true &&
+    parsedInsulin[0].functionText.includes('blood glucose') &&
+    parsedInsulin[0].sequence === insulin &&
+    parsedInsulin[1].reviewed === false &&
+    insulinHit.origin === 'uniprot' &&
+    stored.name === 'Insulin' &&
+    stored.sequence?.accession === 'P01308' &&
+    stored.sequence.sequence === insulin &&
+    byName.some((hit) => hit.basisId === 'PRT-003' && hit.sequence === null) &&
+    bySequence.length === 1 &&
+    bySequence[0].sequence?.accession === 'P01308' &&
+    searchInternalProteins('sequence', insulin.slice(0, 20), []).length === 0,
 );
 
 console.log('\nAll selection checks passed.');

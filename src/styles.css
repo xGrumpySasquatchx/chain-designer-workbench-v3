@@ -122,6 +122,14 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .protein-fields label{display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:650}
 .protein-fields select,.protein-fields textarea{font:inherit; font-size:12.5px; padding:5px 8px; border:1px solid var(--rule); border-radius:3px; background:var(--card); color:var(--ink)}
 .protein-fields textarea{resize:vertical}
+.protein-lookup{display:flex; flex-direction:column; gap:8px; max-width:640px; margin:12px 0 16px}
+.protein-lookup-label{font-size:12px; font-weight:650}
+.protein-lookup-modes{display:flex; flex-wrap:wrap; gap:6px}
+.protein-lookup-modes .btn[aria-pressed="true"]{background:var(--grain-bg); border-color:transparent; color:var(--grain)}
+.protein-lookup .search{width:100%}
+.protein-reviewed{display:flex; align-items:center; gap:6px; font-size:12px}
+.protein-hits{list-style:none; margin:0; padding:0; border:1px solid var(--rule); border-radius:4px; max-height:280px; overflow:auto}
+.protein-seq{font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.45; overflow-wrap:anywhere}
 .tool-tabs{display:flex; align-items:stretch; gap:6px; flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden}
 .tool{appearance:none; border:1px solid transparent; background:transparent; color:var(--ink-2); cursor:pointer;
   display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px;

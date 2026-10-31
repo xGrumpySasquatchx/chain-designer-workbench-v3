@@ -1,15 +1,21 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import {
   PROTEIN_FAMILIES,
   PROTEIN_USES,
   PROTEINS,
+  aminoAcidSequence,
+  applyProteinHit,
   familyLabel,
   proteinById,
   proteinSearchText,
   proteinUseLabel,
+  searchInternalProteins,
+  searchUniProt,
+  type ProteinLookupHit,
   type ProteinRecord,
+  type ProteinSearchBy,
 } from '../model/proteins';
-import type { ProteinDraft, ProteinFamily, ProteinUse } from '../model/types';
+import type { ProteinDraft, ProteinFamily, ProteinSequenceRecord, ProteinUse } from '../model/types';
 
 export function ProteinBench({
   drafts,
@@ -78,7 +84,7 @@ export function ProteinBench({
             {registered ? (
               <RegisteredProtein protein={registered} onNew={() => onNew(registered.id)} />
             ) : draft ? (
-              <DraftProtein draft={draft} onChange={onChange} />
+              <DraftProtein draft={draft} drafts={drafts} onChange={onChange} />
             ) : (
               <div className="req-empty">
                 <p>Open a registered receptor or scaffold, or start a new protein.</p>
@@ -124,9 +130,22 @@ function ProteinRail({
   const draftRows = drafts.filter((draft) => {
     if (!q) return true;
     const basis = draft.basisId ? proteinById(draft.basisId) : undefined;
-    return proteinSearchText([draft.id, draft.name, draft.note, basis?.name ?? '', familyLabel(draft.family)].join(' ')).includes(
-      q,
-    );
+    const sequence = draft.sequence;
+    return proteinSearchText(
+      [
+        draft.id,
+        draft.name,
+        draft.note,
+        basis?.name ?? '',
+        familyLabel(draft.family),
+        sequence?.accession ?? '',
+        sequence?.entryName ?? '',
+        sequence?.proteinName ?? '',
+        sequence?.gene ?? '',
+        sequence?.organism ?? '',
+        sequence?.sequence ?? '',
+      ].join(' '),
+    ).includes(q);
   });
   return (
     <aside className={`panel rail${expanded ? '' : ' is-folded'}`} aria-label="Proteins">
@@ -162,7 +181,8 @@ function ProteinRail({
                   <button type="button" className="req-row" onClick={() => onOpen(draft.id)}>
                     <span className="nm">{draft.name}</span>
                     <span className="sm">
-                      {draft.id} · {familyLabel(draft.family)}
+                      {draft.id}
+                      {draft.sequence?.accession ? ` · ${draft.sequence.accession}` : ` · ${familyLabel(draft.family)}`}
                     </span>
                   </button>
                   <button
@@ -248,9 +268,11 @@ function RegisteredProtein({ protein, onNew }: { protein: ProteinRecord; onNew: 
 
 function DraftProtein({
   draft,
+  drafts,
   onChange,
 }: {
   draft: ProteinDraft;
+  drafts: ProteinDraft[];
   onChange: (draft: ProteinDraft) => void;
 }) {
   const basis = draft.basisId ? proteinById(draft.basisId) : undefined;
@@ -258,6 +280,7 @@ function DraftProtein({
     <>
       <p className="mono">{draft.id}</p>
       <p className="sm">Draft. This id stays with the protein when you build from it.</p>
+      <ProteinLookup draft={draft} drafts={drafts} onChange={onChange} />
       <div className="protein-fields">
         <label>
           Name
@@ -339,6 +362,202 @@ function DraftProtein({
         </p>
       ) : null}
       <p className="sm">Chosen area: {proteinUseLabel(draft.use)}.</p>
+      {draft.sequence ? <BroughtSequence sequence={draft.sequence} /> : null}
     </>
   );
+}
+
+function ProteinLookup({
+  draft,
+  drafts,
+  onChange,
+}: {
+  draft: ProteinDraft;
+  drafts: ProteinDraft[];
+  onChange: (draft: ProteinDraft) => void;
+}) {
+  const [source, setSource] = useState<'internal' | 'uniprot'>('internal');
+  const [by, setBy] = useState<ProteinSearchBy>('name');
+  const [text, setText] = useState('');
+  const [reviewed, setReviewed] = useState(true);
+  const [hits, setHits] = useState<ProteinLookupHit[]>([]);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setHits([]);
+    setMessage('');
+    setText('');
+    setBusy(false);
+  }, [draft.id]);
+
+  function chooseSource(next: 'internal' | 'uniprot') {
+    setSource(next);
+    setHits([]);
+    setMessage('');
+  }
+
+  function chooseBy(next: ProteinSearchBy) {
+    setBy(next);
+    setHits([]);
+    setMessage('');
+  }
+
+  async function search(event: FormEvent) {
+    event.preventDefault();
+    const query = text.trim();
+    if (query.length < 2) {
+      setHits([]);
+      setMessage('Enter a name or a sequence.');
+      return;
+    }
+    if (by === 'sequence' && !aminoAcidSequence(query)) {
+      setHits([]);
+      setMessage('Enter an amino-acid sequence of at least 8 residues.');
+      return;
+    }
+    if (source === 'internal') {
+      const found = searchInternalProteins(
+        by,
+        query,
+        drafts.filter((item) => item.id !== draft.id),
+      );
+      setHits(found);
+      setMessage(found.length ? '' : lookupEmpty(source, by));
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const found = await searchUniProt(by, query, reviewed);
+      setHits(found);
+      setMessage(found.length ? '' : lookupEmpty(source, by));
+    } catch (error) {
+      setHits([]);
+      setMessage(error instanceof Error ? error.message : 'UniProt could not be reached.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const placeholder =
+    by === 'sequence'
+      ? source === 'uniprot'
+        ? 'Full amino-acid sequence'
+        : 'Amino-acid sequence already stored'
+      : source === 'uniprot'
+        ? 'Name, gene, or UniProt accession'
+        : 'Name, class, or id';
+
+  return (
+    <form className="protein-lookup" onSubmit={search}>
+      <span className="protein-lookup-label">Find a protein</span>
+      <div className="protein-lookup-modes">
+        <button type="button" className="btn sm" aria-pressed={source === 'internal'} onClick={() => chooseSource('internal')}>
+          Internal
+        </button>
+        <button type="button" className="btn sm" aria-pressed={source === 'uniprot'} onClick={() => chooseSource('uniprot')}>
+          UniProt
+        </button>
+        <button type="button" className="btn sm" aria-pressed={by === 'name'} onClick={() => chooseBy('name')}>
+          Name
+        </button>
+        <button type="button" className="btn sm" aria-pressed={by === 'sequence'} onClick={() => chooseBy('sequence')}>
+          Sequence
+        </button>
+      </div>
+      <p className="sm">{lookupHint(source, by)}</p>
+      <input
+        className="search"
+        type={by === 'sequence' ? 'text' : 'search'}
+        aria-label={placeholder}
+        placeholder={placeholder}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+      />
+      {source === 'uniprot' ? (
+        <label className="protein-reviewed">
+          <input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} />
+          Reviewed entries only
+        </label>
+      ) : null}
+      <div>
+        <button className="btn sm primary" type="submit" disabled={busy}>
+          {busy ? 'Searching UniProt…' : 'Search'}
+        </button>
+      </div>
+      {message ? <p className="sm">{message}</p> : null}
+      {hits.length ? (
+        <ul className="protein-hits">
+          {hits.map((hit) => (
+            <li key={hit.key}>
+              <button type="button" className="req-row" onClick={() => onChange(applyProteinHit(draft, hit))}>
+                <span className="nm">{hit.title}</span>
+                <span className="sm">{hit.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </form>
+  );
+}
+
+function BroughtSequence({ sequence }: { sequence: ProteinSequenceRecord }) {
+  return (
+    <dl className="infer-dl protein-facts">
+      <div>
+        <dt>Accession</dt>
+        <dd>
+          {sequence.accession}
+          {sequence.entryName ? ` · ${sequence.entryName}` : ''}
+          {sequence.reviewed ? ' · Reviewed' : ' · Unreviewed'}
+        </dd>
+      </div>
+      {sequence.gene ? (
+        <div>
+          <dt>Gene</dt>
+          <dd>{sequence.gene}</dd>
+        </div>
+      ) : null}
+      {sequence.organism ? (
+        <div>
+          <dt>Organism</dt>
+          <dd>{sequence.organism}</dd>
+        </div>
+      ) : null}
+      <div>
+        <dt>Length</dt>
+        <dd>{sequence.length} aa</dd>
+      </div>
+      {sequence.functionText ? (
+        <div>
+          <dt>Function</dt>
+          <dd>{sequence.functionText}</dd>
+        </div>
+      ) : null}
+      <div>
+        <dt>Sequence</dt>
+        <dd className="protein-seq">{sequence.sequence}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function lookupHint(source: 'internal' | 'uniprot', by: ProteinSearchBy): string {
+  if (source === 'internal' && by === 'name') return 'Matches registered receptors and scaffolds, and proteins already brought in.';
+  if (source === 'internal') return 'Matches a sequence already stored on a draft.';
+  if (by === 'name') return 'Brings the accession, sequence, and metadata from UniProt.';
+  return 'Matches the full UniProt sequence. A fragment is found among proteins already stored here.';
+}
+
+function lookupEmpty(source: 'internal' | 'uniprot', by: ProteinSearchBy): string {
+  if (source === 'internal' && by === 'sequence') {
+    return 'No saved protein has this sequence. Search UniProt with the full sequence, or search by name.';
+  }
+  if (source === 'uniprot' && by === 'sequence') {
+    return 'No UniProt entry has this exact sequence. Search by name or accession, or search proteins already stored here.';
+  }
+  if (source === 'uniprot') return 'No UniProt entry matched.';
+  return 'No registered protein or draft matched.';
 }

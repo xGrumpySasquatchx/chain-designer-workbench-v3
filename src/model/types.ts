@@ -4,6 +4,20 @@ export type ProductKind = 'antibody' | 'protein';
 export type ProteinFamily = 'receptor' | 'human' | 'nonhuman' | 'engineered';
 export type ProteinUse = 'delivery' | 'antagonism';
 
+/** Sequence and metadata brought in from the registry or from UniProt. */
+export interface ProteinSequenceRecord {
+  origin: 'internal' | 'uniprot';
+  accession: string;
+  entryName: string;
+  proteinName: string;
+  gene: string;
+  organism: string;
+  reviewed: boolean;
+  length: number;
+  sequence: string;
+  functionText: string;
+}
+
 /** A protein the user is designing, before it is registered. */
 export interface ProteinDraft {
   id: string;
@@ -13,6 +27,7 @@ export interface ProteinDraft {
   basisId: string | null;
   use: ProteinUse | null;
   note: string;
+  sequence: ProteinSequenceRecord | null;
 }
 export type Grain = 'fmt' | 'chn' | 'var' | 'mut' | 'con' | 'exp';
 

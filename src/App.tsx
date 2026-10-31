@@ -89,7 +89,7 @@ import type {
   VPanel,
   VRegion,
 } from './model/types';
-import { defaultState, loadState, saveState } from './state/persist';
+import { loadState, saveState } from './state/persist';
 
 const seed = seedJson as unknown as Seed;
 const inventory = inventoryJson as InventoryBook;
@@ -344,7 +344,7 @@ function pruneFacetSel(facetSel: Record<string, Set<string>>, rows: Row[]): Reco
 
 export default function App() {
   const sides = useSidePanels();
-  const [state, setState] = useState(defaultState);
+  const [state, setState] = useState(loadState);
   const [query, setQuery] = useState<Record<Grain, string>>({
     fmt: '',
     chn: '',
@@ -363,10 +363,6 @@ export default function App() {
   });
   const [pad, setPad] = useState<PadDesign>(EMPTY_DESIGN);
   const [panelQuery, setPanelQuery] = useState('');
-
-  useEffect(() => {
-    setState(loadState());
-  }, []);
 
   useEffect(() => {
     saveState(state);

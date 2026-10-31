@@ -11,6 +11,7 @@ import type {
   LumaPanel,
   ProteinDraft,
   ProteinFamily,
+  ProteinSequenceRecord,
   ProteinUse,
   RequestDoc,
   State,
@@ -106,7 +107,12 @@ export function loadState(): State {
       base.constructCount = r.constructCount;
     }
     if (isGroupMap(r.sequencePicks)) base.sequencePicks = r.sequencePicks;
-    if (Array.isArray(r.proteinDrafts)) base.proteinDrafts = r.proteinDrafts.filter(isProteinDraft);
+    if (Array.isArray(r.proteinDrafts)) {
+      base.proteinDrafts = r.proteinDrafts.flatMap((value) => {
+        const draft = readProteinDraft(value);
+        return draft ? [draft] : [];
+      });
+    }
     if (typeof r.activeProteinId === 'string') base.activeProteinId = r.activeProteinId;
   } catch {
     return defaultState();
@@ -171,17 +177,41 @@ function isRatioMap(value: unknown): value is Record<string, number> {
   );
 }
 
-function isProteinDraft(value: unknown): value is ProteinDraft {
-  if (!value || typeof value !== 'object') return false;
+function readProteinDraft(value: unknown): ProteinDraft | null {
+  if (!value || typeof value !== 'object') return null;
   const draft = value as ProteinDraft;
-  return (
-    typeof draft.id === 'string' &&
-    typeof draft.name === 'string' &&
-    (draft.family === null || oneOf(draft.family, PROTEIN_FAMILIES) !== null) &&
-    (draft.basisId === null || typeof draft.basisId === 'string') &&
-    (draft.use === null || oneOf(draft.use, PROTEIN_USES) !== null) &&
-    typeof draft.note === 'string'
-  );
+  const sequence = draft.sequence == null ? null : readProteinSequence(draft.sequence);
+  if (
+    typeof draft.id !== 'string' ||
+    typeof draft.name !== 'string' ||
+    (draft.family !== null && oneOf(draft.family, PROTEIN_FAMILIES) === null) ||
+    (draft.basisId !== null && typeof draft.basisId !== 'string') ||
+    (draft.use !== null && oneOf(draft.use, PROTEIN_USES) === null) ||
+    typeof draft.note !== 'string'
+  ) {
+    return null;
+  }
+  return { ...draft, sequence };
+}
+
+function readProteinSequence(value: unknown): ProteinSequenceRecord | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as ProteinSequenceRecord;
+  if (record.origin !== 'internal' && record.origin !== 'uniprot') return null;
+  if (
+    typeof record.accession !== 'string' ||
+    typeof record.entryName !== 'string' ||
+    typeof record.proteinName !== 'string' ||
+    typeof record.gene !== 'string' ||
+    typeof record.organism !== 'string' ||
+    typeof record.reviewed !== 'boolean' ||
+    typeof record.length !== 'number' ||
+    typeof record.sequence !== 'string' ||
+    typeof record.functionText !== 'string'
+  ) {
+    return null;
+  }
+  return record;
 }
 
 function isMolecule(value: unknown): value is LumaMolecule {
