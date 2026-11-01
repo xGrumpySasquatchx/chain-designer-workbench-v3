@@ -25,6 +25,8 @@ import {
   PROTEIN_USES,
   PROTEINS,
   aminoAcidSequence,
+  annotationLanes,
+  annotationsFromSequence,
   applyProteinHit,
   cloningPanel,
   crc64,
@@ -34,6 +36,7 @@ import {
   proteinById,
   proteinSearchText,
   searchInternalProteins,
+  sequenceRows,
   uniProtHits,
 } from '../src/model/proteins';
 import { buildSlots, slotsFor } from '../src/model/slots';
@@ -1133,6 +1136,46 @@ check(
     preferredStrings[0].dna.startsWith('ATG') &&
     panelPair.members.length === 2 &&
     panelPair.ratio === '1:1',
+);
+
+const featured = parseUniProtSearch({
+  results: [
+    {
+      ...insulinEntry,
+      features: [
+        { type: 'Signal', location: { start: { value: 1 }, end: { value: 24 } }, description: '' },
+        { type: 'Peptide', location: { start: { value: 25 }, end: { value: 54 } }, description: 'Insulin B chain' },
+        { type: 'Disulfide bond', location: { start: { value: 31 }, end: { value: 96 } }, description: '' },
+      ],
+    },
+  ],
+})[0];
+const annotated = annotationsFromSequence(featured);
+const lanes = annotationLanes(annotated);
+const hidden = annotationLanes(annotated.map((item, index) => (index === 1 ? { ...item, visible: false } : item)));
+const rows = sequenceRows(110, 40);
+const cut = editAminoAcids(
+  applyProteinHit(newProteinDraft([]), { ...insulinHit, sequence: featured }),
+  insulin.slice(0, 20),
+);
+check(
+  'every brought-in annotation can be drawn, hidden, or wrapped onto its own rows',
+  featured.features.length === 3 &&
+    featured.features[0].name === 'Signal' &&
+    featured.features[1].name === 'Insulin B chain' &&
+    annotated.length === 4 &&
+    annotated[0].type === 'Chain' &&
+    annotated.every((item) => item.visible) &&
+    lanes.length === 4 &&
+    new Set(lanes.map((item) => item.lane)).size >= 2 &&
+    hidden.length === 3 &&
+    rows.length === 3 &&
+    rows[0].start === 1 &&
+    rows[0].end === 40 &&
+    rows[2].start === 81 &&
+    rows[2].end === 110 &&
+    cut.sequence?.features.every((feature) => feature.start <= 20) === true &&
+    cut.annotations.every((annotation) => annotation.end <= 20),
 );
 
 console.log('\nAll selection checks passed.');

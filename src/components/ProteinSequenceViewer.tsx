@@ -1,10 +1,12 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   PROTEIN_ROLES,
   addProteinAnnotation,
+  annotationLanes,
   chainAnnotation,
   chosenTranslation,
   editAminoAcids,
+  sequenceRows,
 } from '../model/proteins';
 import { characterizedTranslations, preferredTranslation } from '../model/sequences';
 import type { NucleotideTranslation } from '../model/sequences';
@@ -38,6 +40,9 @@ export function ProteinSequenceViewer({
   const [showAmino, setShowAmino] = useState(true);
   const [showDna, setShowDna] = useState(true);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [wrapped, setWrapped] = useState(false);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState(1);
   const [draftAnn, setDraftAnn] = useState({ type: 'Domain', name: '', start: '1', end: '1', note: '' });
   useEffect(() => {
@@ -45,6 +50,15 @@ export function ProteinSequenceViewer({
       onChange({ ...draft, annotations: [chainAnnotation(sequence)] });
     }
   }, [draft, onChange, sequence]);
+  useEffect(() => {
+    const node = trackRef.current;
+    if (!node) return;
+    const update = () => setTrackWidth(node.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [sequence?.accession, sequence?.sequence]);
   if (!sequence) return null;
 
   const amino = sequence.sequence;
@@ -56,7 +70,11 @@ export function ProteinSequenceViewer({
   const cell = letters ? Math.round((zoom / 100) * 28) : Math.round((zoom / 100) * 18);
   const at = Math.min(amino.length, Math.max(1, cursor));
   const codon = dna.slice((at - 1) * 3, at * 3);
-  const covering = draft.annotations.filter((annotation) => annotation.start <= at && annotation.end >= at);
+  const covering = draft.annotations.filter(
+    (annotation) => annotation.visible !== false && annotation.start <= at && annotation.end >= at,
+  );
+  const perLine = wrapped && trackWidth > 0 ? Math.max(8, Math.floor((trackWidth - 16) / cell)) : amino.length;
+  const rows = sequenceRows(amino.length, perLine);
 
   return (
     <section className="gsv" aria-label="Sequence viewer">
@@ -64,7 +82,8 @@ export function ProteinSequenceViewer({
         <h3>Sequence viewer</h3>
         <p className="sm">
           Amino acids and the reverse translation. Zoom, annotations, and editing follow the Geneious sequence view.
-          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench.
+          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. Linear
+          keeps one row. Wrap fits each row to the viewer. Uncheck an annotation to hide it.
         </p>
       </div>
       <div className="gsv-toolbar">
@@ -92,6 +111,12 @@ export function ProteinSequenceViewer({
         <button type="button" className="btn sm" aria-pressed={showAnnotations} onClick={() => setShowAnnotations((value) => !value)}>
           Annotations
         </button>
+        <button type="button" className="btn sm" aria-pressed={!wrapped} onClick={() => setWrapped(false)}>
+          Linear
+        </button>
+        <button type="button" className="btn sm" aria-pressed={wrapped} onClick={() => setWrapped(true)}>
+          Wrap
+        </button>
       </div>
       <p className="sm gsv-inspect">
         {at} {THREE[amino[at - 1]] ?? amino[at - 1]} {codon}
@@ -109,67 +134,36 @@ export function ProteinSequenceViewer({
           />
         </label>
       ) : null}
-      <div className="gsv-track" style={{ '--gsv-cell': `${cell}px` } as CSSProperties}>
-        <div className="gsv-row gsv-ruler" aria-hidden="true">
-          {[...amino].map((_, index) => (
-            <span key={index} className="gsv-res">
-              {(index + 1) % 10 === 0 ? index + 1 : ''}
-            </span>
+      <div
+        ref={trackRef}
+        className={`gsv-track${wrapped ? ' wrap' : ' linear'}`}
+        style={{ '--gsv-cell': `${cell}px` } as CSSProperties}
+      >
+        <div className="gsv-lines">
+          {rows.map((row) => (
+            <SequenceLine
+              key={row.start}
+              row={row}
+              amino={amino}
+              dna={dna}
+              letters={letters}
+              cursor={at}
+              wrapped={wrapped}
+              showAmino={showAmino}
+              showDna={showDna}
+              showAnnotations={showAnnotations}
+              annotations={draft.annotations}
+              onCursor={setCursor}
+            />
           ))}
         </div>
-        {showAnnotations ? (
-          <div className="gsv-ann" style={{ width: amino.length * cell }}>
-            {draft.annotations.map((annotation, index) => (
-              <button
-                key={annotation.id}
-                type="button"
-                className={`gsv-ann-bar gsv-ann-${index % 4}`}
-                style={{
-                  left: (annotation.start - 1) * cell,
-                  width: (annotation.end - annotation.start + 1) * cell,
-                  top: 4 + (index % 3) * 16,
-                }}
-                title={annotation.note || annotation.name}
-                onClick={() => setCursor(annotation.start)}
-              >
-                {annotation.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        {showAmino ? (
-          <div className="gsv-row" role="list" aria-label="Amino acids">
-            {[...amino].map((residue, index) => (
-              <button
-                key={index}
-                type="button"
-                role="listitem"
-                className={`gsv-res ${residueClass(residue)}${index + 1 === at ? ' on' : ''}`}
-                aria-pressed={index + 1 === at}
-                onClick={() => setCursor(index + 1)}
-              >
-                {letters ? THREE[residue] ?? residue : residue}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        {showDna ? (
-          <div className="gsv-row gsv-dna" aria-label="Reverse translation">
-            {[...amino].map((_, index) => (
-              <span key={index} className={`gsv-res${index + 1 === at ? ' on' : ''}`}>
-                {dna.slice(index * 3, index * 3 + 3)}
-              </span>
-            ))}
-          </div>
-        ) : null}
       </div>
       <TranslationChoice
         draft={draft}
         translations={translations}
         onPick={(id) => onChange({ ...draft, translationId: id })}
       />
-      {showAnnotations ? (
-        <AnnotationEditor
+      <AnnotationEditor
           annotations={draft.annotations}
           length={amino.length}
           draftAnn={draftAnn}
@@ -190,8 +184,15 @@ export function ProteinSequenceViewer({
             setDraftAnn({ type: 'Domain', name: '', start: '1', end: String(amino.length), note: '' });
           }}
           onDelete={(id) => onChange({ ...draft, annotations: draft.annotations.filter((item) => item.id !== id) })}
+          onToggle={(id) =>
+            onChange({
+              ...draft,
+              annotations: draft.annotations.map((item) =>
+                item.id === id ? { ...item, visible: item.visible === false } : item,
+              ),
+            })
+          }
         />
-      ) : null}
       <div className="protein-fields gsv-clone">
         <label>
           Cloning role
@@ -302,6 +303,104 @@ function TranslationChoice({
   );
 }
 
+function annColor(type: string): string {
+  let hash = 0;
+  for (let index = 0; index < type.length; index += 1) hash = (hash + type.charCodeAt(index)) % 4;
+  return `gsv-ann-${hash}`;
+}
+
+function SequenceLine({
+  row,
+  amino,
+  dna,
+  letters,
+  cursor,
+  wrapped,
+  showAmino,
+  showDna,
+  showAnnotations,
+  annotations,
+  onCursor,
+}: {
+  row: { start: number; end: number };
+  amino: string;
+  dna: string;
+  letters: boolean;
+  cursor: number;
+  wrapped: boolean;
+  showAmino: boolean;
+  showDna: boolean;
+  showAnnotations: boolean;
+  annotations: ProteinAnnotation[];
+  onCursor: (position: number) => void;
+}) {
+  const residues: number[] = [];
+  for (let position = row.start; position <= row.end; position += 1) residues.push(position);
+  const lanes = showAnnotations ? annotationLanes(annotations, row) : [];
+  const laneCount = lanes.reduce((max, item) => Math.max(max, item.lane + 1), 0);
+  const span = `calc(${residues.length} * var(--gsv-cell))`;
+  return (
+    <div className="gsv-line">
+      {wrapped ? <div className="gsv-line-no">{row.start}</div> : null}
+      <div className="gsv-row gsv-ruler" aria-hidden="true">
+        {residues.map((position) => (
+          <span key={position} className="gsv-res">
+            {position % 10 === 0 ? position : ''}
+          </span>
+        ))}
+      </div>
+      {laneCount > 0 ? (
+        <div className="gsv-ann" style={{ height: laneCount * 18, width: span }}>
+          {lanes.map((item) => (
+            <button
+              key={item.annotation.id}
+              type="button"
+              className={`gsv-ann-bar ${annColor(item.annotation.type)}`}
+              style={{
+                left: `calc(${item.start - row.start} * var(--gsv-cell))`,
+                width: `calc(${item.end - item.start + 1} * var(--gsv-cell))`,
+                top: item.lane * 18 + 2,
+              }}
+              title={`${item.annotation.type} · ${item.annotation.name} · ${item.annotation.start}–${item.annotation.end}${item.annotation.note ? ` · ${item.annotation.note}` : ''}`}
+              onClick={() => onCursor(item.annotation.start)}
+            >
+              {item.annotation.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {showAmino ? (
+        <div className="gsv-row" role="list" aria-label="Amino acids">
+          {residues.map((position) => {
+            const residue = amino[position - 1] ?? '';
+            return (
+              <button
+                key={position}
+                type="button"
+                role="listitem"
+                className={`gsv-res ${residueClass(residue)}${position === cursor ? ' on' : ''}`}
+                aria-pressed={position === cursor}
+                onClick={() => onCursor(position)}
+              >
+                {letters ? THREE[residue] ?? residue : residue}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+      {showDna ? (
+        <div className="gsv-row gsv-dna" aria-label="Reverse translation">
+          {residues.map((position) => (
+            <span key={position} className={`gsv-res${position === cursor ? ' on' : ''}`}>
+              {dna.slice((position - 1) * 3, position * 3)}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AnnotationEditor({
   annotations,
   length,
@@ -309,6 +408,7 @@ function AnnotationEditor({
   onDraftAnn,
   onAdd,
   onDelete,
+  onToggle,
 }: {
   annotations: ProteinAnnotation[];
   length: number;
@@ -316,22 +416,36 @@ function AnnotationEditor({
   onDraftAnn: (next: { type: string; name: string; start: string; end: string; note: string }) => void;
   onAdd: () => void;
   onDelete: (id: string) => void;
+  onToggle: (id: string) => void;
 }) {
+  const ordered = [...annotations].sort((a, b) => a.start - b.start || a.end - b.end || a.name.localeCompare(b.name));
+  const shown = ordered.filter((annotation) => annotation.visible !== false).length;
   return (
     <div className="gsv-annotations">
       <h4>Annotations</h4>
-      <ul className="protein-hits">
-        {annotations.map((annotation) => (
+      <p className="sm">
+        {shown} of {ordered.length} drawn on the sequence. Uncheck one to hide it.
+      </p>
+      <ul className="protein-hits gsv-ann-list">
+        {ordered.map((annotation) => (
           <li key={annotation.id} className="gsv-ann-line">
-            <span>
-              <span className="nm">
-                {annotation.type} · {annotation.name}
+            <label className="seq-check">
+              <input
+                type="checkbox"
+                checked={annotation.visible !== false}
+                aria-label={`Show ${annotation.name}`}
+                onChange={() => onToggle(annotation.id)}
+              />
+              <span>
+                <span className="nm">
+                  {annotation.name === annotation.type ? annotation.type : `${annotation.type} · ${annotation.name}`}
+                </span>
+                <span className="sm">
+                  {annotation.start}–{annotation.end}
+                  {annotation.note ? ` · ${annotation.note}` : ''}
+                </span>
               </span>
-              <span className="sm">
-                {annotation.start}–{annotation.end}
-                {annotation.note ? ` · ${annotation.note}` : ''}
-              </span>
-            </span>
+            </label>
             <button type="button" className="btn sm" onClick={() => onDelete(annotation.id)}>
               Remove
             </button>

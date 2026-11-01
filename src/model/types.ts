@@ -16,6 +16,17 @@ export interface ProteinAnnotation {
   start: number;
   end: number;
   note: string;
+  /** Unchecked annotations stay in the list and leave the sequence. */
+  visible: boolean;
+}
+
+/** A UniProt feature, before it is given an id on the draft. */
+export interface ProteinFeature {
+  type: string;
+  name: string;
+  start: number;
+  end: number;
+  note: string;
 }
 
 /** Sequence and metadata brought in from the registry or from UniProt. */
@@ -30,6 +41,8 @@ export interface ProteinSequenceRecord {
   length: number;
   sequence: string;
   functionText: string;
+  /** Features that arrived with the sequence, such as signal, chain, and disulfide. */
+  features: ProteinFeature[];
 }
 
 /** A protein the user is designing, before it is registered. */

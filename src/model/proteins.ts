@@ -3,6 +3,7 @@ import type {
   ProteinAnnotation,
   ProteinDraft,
   ProteinFamily,
+  ProteinFeature,
   ProteinRole,
   ProteinScheme,
   ProteinSequenceRecord,
@@ -192,16 +193,77 @@ export function chainAnnotation(sequence: ProteinSequenceRecord): ProteinAnnotat
     start: 1,
     end: Math.max(1, length),
     note: sequence.functionText,
+    visible: true,
   };
+}
+
+/** The chain plus every feature that arrived with the sequence. */
+export function annotationsFromSequence(sequence: ProteinSequenceRecord): ProteinAnnotation[] {
+  const features = sequence.features ?? [];
+  return [
+    chainAnnotation(sequence),
+    ...features.map((feature, index) => ({
+      id: `ft-${index + 1}`,
+      type: feature.type,
+      name: feature.name || feature.type,
+      start: feature.start,
+      end: feature.end,
+      note: feature.note,
+      visible: true,
+    })),
+  ];
+}
+
+/** Keep a span inside the sequence. A span that starts past the end is dropped. */
+function clampSpan<T extends { start: number; end: number }>(span: T, length: number): T[] {
+  if (length < 1 || span.start > length) return [];
+  const start = Math.max(1, Math.min(length, Math.round(span.start)));
+  const end = Math.max(start, Math.min(length, Math.round(span.end)));
+  return [{ ...span, start, end }];
 }
 
 /** Keep annotations inside the sequence after an edit. */
 export function clampAnnotations(annotations: ProteinAnnotation[], length: number): ProteinAnnotation[] {
-  return annotations.flatMap((annotation) => {
-    const start = Math.max(1, Math.min(length, Math.round(annotation.start)));
-    const end = Math.max(start, Math.min(length, Math.round(annotation.end)));
-    if (length < 1) return [];
-    return [{ ...annotation, start, end }];
+  return annotations.flatMap((annotation) => clampSpan(annotation, length));
+}
+
+function clampFeatures(features: ProteinFeature[], length: number): ProteinFeature[] {
+  return features.flatMap((feature) => clampSpan(feature, length));
+}
+
+/** Rows of a wrapped sequence. One row when the line is at least as long as the sequence. */
+export function sequenceRows(length: number, perLine: number): { start: number; end: number }[] {
+  const size = Math.max(1, Math.floor(perLine));
+  const rows: { start: number; end: number }[] = [];
+  for (let start = 1; start <= Math.max(1, length); start += size) {
+    rows.push({ start, end: Math.min(Math.max(1, length), start + size - 1) });
+  }
+  return rows;
+}
+
+/** Place every visible annotation on a lane. Overlapping spans use different lanes. */
+export function annotationLanes(
+  annotations: ProteinAnnotation[],
+  range?: { start: number; end: number },
+): { annotation: ProteinAnnotation; lane: number; start: number; end: number }[] {
+  const clipped = annotations.flatMap((annotation) => {
+    if (annotation.visible === false) return [];
+    const start = range ? Math.max(annotation.start, range.start) : annotation.start;
+    const end = range ? Math.min(annotation.end, range.end) : annotation.end;
+    if (end < start) return [];
+    return [{ annotation, start, end }];
+  });
+  const ordered = [...clipped].sort((a, b) => a.start - b.start || a.end - b.end || a.annotation.name.localeCompare(b.annotation.name));
+  const laneEnds: number[] = [];
+  return ordered.map((item) => {
+    let lane = laneEnds.findIndex((end) => end < item.start);
+    if (lane < 0) {
+      lane = laneEnds.length;
+      laneEnds.push(item.end);
+    } else {
+      laneEnds[lane] = item.end;
+    }
+    return { ...item, lane };
   });
 }
 
@@ -209,15 +271,23 @@ export function clampAnnotations(annotations: ProteinAnnotation[], length: numbe
 export function editAminoAcids(draft: ProteinDraft, raw: string): ProteinDraft {
   const sequence = raw.toUpperCase().replace(AA_LETTERS, '');
   if (!sequence || !draft.sequence) return draft;
-  const next = { ...draft.sequence, sequence, length: sequence.length };
+  const next = {
+    ...draft.sequence,
+    sequence,
+    length: sequence.length,
+    features: clampFeatures(draft.sequence.features ?? [], sequence.length),
+  };
   return {
     ...draft,
     sequence: next,
-    annotations: clampAnnotations(draft.annotations.length ? draft.annotations : [chainAnnotation(next)], sequence.length),
+    annotations: clampAnnotations(
+      draft.annotations.length ? draft.annotations : annotationsFromSequence(next),
+      sequence.length,
+    ),
   };
 }
 
-export function addProteinAnnotation(draft: ProteinDraft, annotation: Omit<ProteinAnnotation, 'id'>): ProteinDraft {
+export function addProteinAnnotation(draft: ProteinDraft, annotation: Omit<ProteinAnnotation, 'id' | 'visible'>): ProteinDraft {
   const length = draft.sequence?.sequence.length ?? 0;
   if (length < 1) return draft;
   const n =
@@ -225,7 +295,7 @@ export function addProteinAnnotation(draft: ProteinDraft, annotation: Omit<Prote
       const matched = /^ann-(\d+)$/.exec(item.id);
       return matched ? Math.max(max, Number(matched[1])) : max;
     }, 0) + 1;
-  const [placed] = clampAnnotations([{ ...annotation, id: `ann-${n}` }], length);
+  const [placed] = clampAnnotations([{ ...annotation, id: `ann-${n}`, visible: true }], length);
   if (!placed) return draft;
   return { ...draft, annotations: [...draft.annotations, placed] };
 }
@@ -390,13 +460,57 @@ export function applyProteinHit(draft: ProteinDraft, hit: ProteinLookupHit): Pro
     family: basis?.family ?? draft.family,
     basisId: hit.basisId ?? draft.basisId,
     sequence,
-    annotations: hit.sequence ? [chainAnnotation(hit.sequence)] : draft.annotations,
+    annotations: hit.sequence ? annotationsFromSequence(hit.sequence) : draft.annotations,
     translationId: replaced ? null : draft.translationId,
   };
 }
 
 const UNIPROT_SEARCH = 'https://rest.uniprot.org/uniprotkb/search';
-const UNIPROT_FIELDS = 'accession,id,protein_name,gene_names,organism_name,length,cc_function,reviewed,sequence';
+const UNIPROT_FIELDS = [
+  'accession',
+  'id',
+  'protein_name',
+  'gene_names',
+  'organism_name',
+  'length',
+  'cc_function',
+  'reviewed',
+  'sequence',
+  'ft_init_met',
+  'ft_signal',
+  'ft_transit',
+  'ft_propep',
+  'ft_chain',
+  'ft_peptide',
+  'ft_topo_dom',
+  'ft_transmem',
+  'ft_intramem',
+  'ft_domain',
+  'ft_repeat',
+  'ft_zn_fing',
+  'ft_dna_bind',
+  'ft_region',
+  'ft_coiled',
+  'ft_motif',
+  'ft_compbias',
+  'ft_act_site',
+  'ft_binding',
+  'ft_site',
+  'ft_non_std',
+  'ft_mod_res',
+  'ft_lipid',
+  'ft_carbohyd',
+  'ft_disulfid',
+  'ft_crosslnk',
+  'ft_var_seq',
+  'ft_variant',
+  'ft_mutagen',
+  'ft_conflict',
+  'ft_non_ter',
+  'ft_helix',
+  'ft_turn',
+  'ft_strand',
+].join(',');
 
 export function parseUniProtSearch(payload: unknown): ProteinSequenceRecord[] {
   if (!payload || typeof payload !== 'object') return [];
@@ -469,6 +583,7 @@ function readUniProtEntry(entry: unknown): ProteinSequenceRecord | null {
     genes?: { geneName?: { value?: unknown } }[];
     comments?: { commentType?: unknown; texts?: { value?: unknown }[] }[];
     sequence?: { value?: unknown; length?: unknown };
+    features?: unknown;
   };
   const accession = typeof row.primaryAccession === 'string' ? row.primaryAccession : '';
   if (!accession) return null;
@@ -500,5 +615,36 @@ function readUniProtEntry(entry: unknown): ProteinSequenceRecord | null {
     length,
     sequence,
     functionText,
+    features: readUniProtFeatures(row, length),
   };
+}
+
+function readUniProtFeatures(row: { features?: unknown }, length: number): ProteinFeature[] {
+  if (!Array.isArray(row.features) || length < 1) return [];
+  return row.features.flatMap((value) => {
+    if (!value || typeof value !== 'object') return [];
+    const feature = value as {
+      type?: unknown;
+      description?: unknown;
+      ligand?: { name?: unknown };
+      location?: { start?: { value?: unknown }; end?: { value?: unknown } };
+    };
+    const type = typeof feature.type === 'string' ? feature.type : '';
+    const start = feature.location?.start?.value;
+    const endValue = feature.location?.end?.value;
+    const end = typeof endValue === 'number' ? endValue : start;
+    if (!type || typeof start !== 'number' || typeof end !== 'number') return [];
+    if (start < 1 || end < start || start > length) return [];
+    const description = typeof feature.description === 'string' ? feature.description.trim() : '';
+    const ligand = typeof feature.ligand?.name === 'string' ? feature.ligand.name : '';
+    return [
+      {
+        type,
+        name: description || ligand || type,
+        start,
+        end: Math.min(end, length),
+        note: description && ligand ? ligand : '',
+      },
+    ];
+  });
 }

@@ -12,6 +12,7 @@ import type {
   ProteinAnnotation,
   ProteinDraft,
   ProteinFamily,
+  ProteinFeature,
   ProteinRole,
   ProteinScheme,
   ProteinSequenceRecord,
@@ -226,7 +227,7 @@ function readProteinAnnotation(value: unknown): ProteinAnnotation[] {
   ) {
     return [];
   }
-  return [annotation];
+  return [{ ...annotation, visible: annotation.visible !== false }];
 }
 
 function readProteinSequence(value: unknown): ProteinSequenceRecord | null {
@@ -246,7 +247,25 @@ function readProteinSequence(value: unknown): ProteinSequenceRecord | null {
   ) {
     return null;
   }
-  return record;
+  return { ...record, features: readProteinFeatures(record.features) };
+}
+
+function readProteinFeatures(value: unknown): ProteinFeature[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const feature = item as ProteinFeature;
+    if (
+      typeof feature.type !== 'string' ||
+      typeof feature.name !== 'string' ||
+      typeof feature.note !== 'string' ||
+      typeof feature.start !== 'number' ||
+      typeof feature.end !== 'number'
+    ) {
+      return [];
+    }
+    return [feature];
+  });
 }
 
 function isMolecule(value: unknown): value is LumaMolecule {
