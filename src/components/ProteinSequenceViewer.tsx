@@ -3,7 +3,8 @@ import {
   PROTEIN_ROLES,
   addProteinAnnotation,
   annotationLanes,
-  chainAnnotation,
+  annotationSpan,
+  annotationsFromSequence,
   chosenTranslation,
   editAminoAcids,
   sequenceRows,
@@ -47,7 +48,7 @@ export function ProteinSequenceViewer({
   const [draftAnn, setDraftAnn] = useState({ type: 'Domain', name: '', start: '1', end: '1', note: '' });
   useEffect(() => {
     if (sequence && draft.annotations.length === 0) {
-      onChange({ ...draft, annotations: [chainAnnotation(sequence)] });
+      onChange({ ...draft, annotations: annotationsFromSequence(sequence) });
     }
   }, [draft, onChange, sequence]);
   useEffect(() => {
@@ -82,8 +83,9 @@ export function ProteinSequenceViewer({
         <h3>Sequence viewer</h3>
         <p className="sm">
           Amino acids and the reverse translation. Zoom, annotations, and editing follow the Geneious sequence view.
-          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. Linear
-          keeps one row. Wrap fits each row to the viewer. Uncheck an annotation to hide it.
+          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. The map
+          above the residues draws every annotation across the whole sequence. Linear keeps one scrolling row. Wrap
+          fits each row to the viewer. Uncheck an annotation to hide it.
         </p>
       </div>
       <div className="gsv-toolbar">
@@ -134,6 +136,13 @@ export function ProteinSequenceViewer({
           />
         </label>
       ) : null}
+      {showAnnotations ? (
+        <AnnotationOverview
+          annotations={draft.annotations}
+          length={amino.length}
+          onCursor={(position) => focusResidue(trackRef.current, position, setCursor)}
+        />
+      ) : null}
       <div
         ref={trackRef}
         className={`gsv-track${wrapped ? ' wrap' : ' linear'}`}
@@ -158,11 +167,6 @@ export function ProteinSequenceViewer({
           ))}
         </div>
       </div>
-      <TranslationChoice
-        draft={draft}
-        translations={translations}
-        onPick={(id) => onChange({ ...draft, translationId: id })}
-      />
       <AnnotationEditor
           annotations={draft.annotations}
           length={amino.length}
@@ -193,6 +197,11 @@ export function ProteinSequenceViewer({
             })
           }
         />
+      <TranslationChoice
+        draft={draft}
+        translations={translations}
+        onPick={(id) => onChange({ ...draft, translationId: id })}
+      />
       <div className="protein-fields gsv-clone">
         <label>
           Cloning role
@@ -303,6 +312,59 @@ function TranslationChoice({
   );
 }
 
+function focusResidue(track: HTMLDivElement | null, position: number, onCursor: (position: number) => void) {
+  onCursor(position);
+  const node = track?.querySelector(`[data-aa="${position}"]`);
+  if (!track || !(node instanceof HTMLElement)) return;
+  const trackBox = track.getBoundingClientRect();
+  const box = node.getBoundingClientRect();
+  track.scrollLeft += box.left - trackBox.left - track.clientWidth / 2 + box.width / 2;
+}
+
+function AnnotationOverview({
+  annotations,
+  length,
+  onCursor,
+}: {
+  annotations: ProteinAnnotation[];
+  length: number;
+  onCursor: (position: number) => void;
+}) {
+  const lanes = annotationLanes(annotations);
+  const laneCount = lanes.reduce((max, item) => Math.max(max, item.lane + 1), 0);
+  if (!laneCount) return null;
+  return (
+    <div className="gsv-overview" aria-label="All annotations">
+      <p className="sm">{lanes.length} annotations across the whole sequence</p>
+      <div className="gsv-ann gsv-overview-map" style={{ height: laneCount * 18 }}>
+        {lanes.map((item) => {
+          const span = annotationSpan(item.start, item.end, length);
+          return (
+            <button
+              key={item.annotation.id}
+              type="button"
+              className={`gsv-ann-bar ${annColor(item.annotation.type)}`}
+              style={{
+                left: `${span.left * 100}%`,
+                width: `max(${span.width * 100}%, 6px)`,
+                top: item.lane * 18 + 2,
+              }}
+              title={`${item.annotation.type} · ${item.annotation.name} · ${item.annotation.start}–${item.annotation.end}${item.annotation.note ? ` · ${item.annotation.note}` : ''}`}
+              onClick={() => onCursor(item.annotation.start)}
+            >
+              {item.annotation.name}
+            </button>
+          );
+        })}
+      </div>
+      <div className="gsv-overview-scale" aria-hidden="true">
+        <span>1</span>
+        <span>{length}</span>
+      </div>
+    </div>
+  );
+}
+
 function annColor(type: string): string {
   let hash = 0;
   for (let index = 0; index < type.length; index += 1) hash = (hash + type.charCodeAt(index)) % 4;
@@ -378,6 +440,7 @@ function SequenceLine({
                 key={position}
                 type="button"
                 role="listitem"
+                data-aa={position}
                 className={`gsv-res ${residueClass(residue)}${position === cursor ? ' on' : ''}`}
                 aria-pressed={position === cursor}
                 onClick={() => onCursor(position)}

@@ -147,6 +147,9 @@ button.gsv-res{cursor:pointer}
 .gsv-neg{color:#d4534a}
 .gsv-pos{color:#4a78d4}
 .gsv-other{color:var(--ink)}
+.gsv-overview{border:1px solid var(--rule); border-radius:4px; background:var(--card); padding:6px 8px 4px}
+.gsv-overview-map{width:100%}
+.gsv-overview-scale{display:flex; justify-content:space-between; font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-3)}
 .gsv-ann{position:relative; margin-bottom:2px}
 .gsv-ann-bar{position:absolute; height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; border-radius:2px; font:inherit; font-size:10px; text-align:left; padding:0 4px; cursor:pointer; color:#fff}
 .gsv-ann-0{background:var(--in)}

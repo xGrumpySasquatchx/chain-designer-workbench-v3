@@ -28,6 +28,7 @@ import {
   PROTEINS,
   aminoAcidSequence,
   annotationLanes,
+  annotationSpan,
   annotationsFromSequence,
   applyProteinHit,
   cloningPanel,
@@ -1177,7 +1178,41 @@ check(
     rows[2].start === 81 &&
     rows[2].end === 110 &&
     cut.sequence?.features.every((feature) => feature.start <= 20) === true &&
-    cut.annotations.every((annotation) => annotation.end <= 20),
+    cut.annotations.every((annotation) => annotation.end <= 20) &&
+    annotationSpan(1, 24, 110).left === 0 &&
+    annotationSpan(1, 24, 110).width === 24 / 110 &&
+    annotationSpan(90, 110, 110).width === 21 / 110,
+);
+
+const variantRecord = parseUniProtSearch({
+  results: [
+    {
+      ...insulinEntry,
+      features: [
+        {
+          type: 'Natural variant',
+          description: 'in MODY10',
+          alternativeSequence: { originalSequence: 'R', alternativeSequences: ['C'] },
+          location: { start: { value: 6 }, end: { value: 6 } },
+        },
+        {
+          type: 'Binding site',
+          description: '',
+          ligand: { name: 'ATP' },
+          location: { position: { value: 12 } },
+        },
+      ],
+    },
+  ],
+})[0];
+check(
+  'a variant keeps its substitution and a site keeps its position',
+  variantRecord.features[0].name === 'R→C' &&
+    variantRecord.features[0].note === 'in MODY10' &&
+    variantRecord.features[0].start === 6 &&
+    variantRecord.features[1].name === 'ATP' &&
+    variantRecord.features[1].start === 12 &&
+    variantRecord.features[1].end === 12,
 );
 
 const panelSequence = {

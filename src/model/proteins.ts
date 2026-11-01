@@ -244,6 +244,14 @@ export function sequenceRows(length: number, perLine: number): { start: number; 
   return rows;
 }
 
+/** Where a span sits on a full-width overview, as fractions of the sequence. */
+export function annotationSpan(start: number, end: number, length: number): { left: number; width: number } {
+  const safe = Math.max(1, length);
+  const from = Math.max(1, Math.min(safe, start));
+  const to = Math.max(from, Math.min(safe, end));
+  return { left: (from - 1) / safe, width: (to - from + 1) / safe };
+}
+
 /** Place every visible annotation on a lane. Overlapping spans use different lanes. */
 export function annotationLanes(
   annotations: ProteinAnnotation[],
@@ -525,6 +533,8 @@ const UNIPROT_FIELDS = [
   'ft_mutagen',
   'ft_conflict',
   'ft_non_ter',
+  'ft_non_cons',
+  'ft_unsure',
   'ft_helix',
   'ft_turn',
   'ft_strand',
@@ -645,23 +655,35 @@ function readUniProtFeatures(row: { features?: unknown }, length: number): Prote
       type?: unknown;
       description?: unknown;
       ligand?: { name?: unknown };
-      location?: { start?: { value?: unknown }; end?: { value?: unknown } };
+      alternativeSequence?: { originalSequence?: unknown; alternativeSequences?: unknown };
+      location?: { start?: { value?: unknown }; end?: { value?: unknown }; position?: { value?: unknown } };
     };
     const type = typeof feature.type === 'string' ? feature.type : '';
-    const start = feature.location?.start?.value;
+    const position = feature.location?.position?.value;
+    const start = typeof feature.location?.start?.value === 'number' ? feature.location.start.value : position;
     const endValue = feature.location?.end?.value;
     const end = typeof endValue === 'number' ? endValue : start;
     if (!type || typeof start !== 'number' || typeof end !== 'number') return [];
     if (start < 1 || end < start || start > length) return [];
     const description = typeof feature.description === 'string' ? feature.description.trim() : '';
     const ligand = typeof feature.ligand?.name === 'string' ? feature.ligand.name : '';
+    const original =
+      typeof feature.alternativeSequence?.originalSequence === 'string'
+        ? feature.alternativeSequence.originalSequence
+        : '';
+    const alternatives = Array.isArray(feature.alternativeSequence?.alternativeSequences)
+      ? feature.alternativeSequence.alternativeSequences.filter(
+          (item): item is string => typeof item === 'string' && item.length > 0,
+        )
+      : [];
+    const change = original && alternatives.length ? `${original}→${alternatives.join('/')}` : '';
     return [
       {
         type,
-        name: description || ligand || type,
+        name: change || description || ligand || type,
         start,
         end: Math.min(end, length),
-        note: description && ligand ? ligand : '',
+        note: [change ? description : '', change || description ? ligand : ''].filter(Boolean).join(' · '),
       },
     ];
   });

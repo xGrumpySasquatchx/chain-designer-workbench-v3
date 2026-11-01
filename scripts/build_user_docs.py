@@ -383,12 +383,12 @@ PROTEIN: list[tuple[str, str]] = [
     ("li", "Zoom out and Zoom in change the residue size. At a high zoom, amino acids are shown as three-letter codes when you are not editing."),
     ("li", "Amino acids and Reverse translation turn those rows on or off. The DNA row is the reverse translation of the preferred codon category, or of the registered string you checked."),
     ("li", "Annotations shows or hides every bar at once. The list of annotations stays. Uncheck one annotation to hide that bar and leave the others. Overlapping spans stack in separate lanes, so a long feature list remains readable."),
-    ("li", "Linear keeps the sequence on one scrolling row. Wrap fits each row to the width of the viewer and numbers the first residue of each row."),
+    ("li", "A map above the residues draws every annotation across the whole sequence, fitted to the panel. Linear keeps the residues on one scrolling row, so click a bar in the map to bring that part of the sequence into view. Wrap fits each row to the width of the viewer and numbers the first residue of each row."),
     ("li", "Edit sequence lets you change the amino acids. Done editing returns to the residue view."),
     ("li", "Add an annotation with a type, a name, and a start and end. Click a bar to move the cursor to that span."),
     (
         "p",
-        "A UniProt import includes the chain plus the features on that entry, such as a signal, peptides, a propeptide, disulfide bonds, helices, strands, turns, and natural variants. A search you saved before features were imported shows the chain bar until you search that entry again.",
+        "A UniProt import includes the chain plus every feature on that entry: signal, transit and propeptide, chain and peptide, domains and repeats, sites, disulfide bonds and other links, modifications, variants and conflicts, mutagenesis, secondary structure, sequence uncertainty, and non-adjacent residues. A natural variant is named by its substitution, such as R to C, with the UniProt description kept as the note. A search you saved before features were imported shows the chain bar until you search that entry again.",
     ),
     ("h1", "Preferred translation and the cloning panel"),
     (
