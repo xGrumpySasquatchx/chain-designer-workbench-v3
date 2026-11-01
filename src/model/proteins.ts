@@ -158,6 +158,7 @@ export function newProteinDraft(drafts: ProteinDraft[], basis?: ProteinRecord): 
     translationId: null,
     onPanel: false,
     annotations: [],
+    hiddenAnnotationTypes: [],
   };
 }
 
@@ -242,6 +243,42 @@ export function sequenceRows(length: number, perLine: number): { start: number; 
     rows.push({ start, end: Math.min(Math.max(1, length), start + size - 1) });
   }
   return rows;
+}
+
+/** How many annotations share each type, in type name order. */
+export function annotationTypeCounts(annotations: ProteinAnnotation[]): { type: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const annotation of annotations) counts.set(annotation.type, (counts.get(annotation.type) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => a.type.localeCompare(b.type));
+}
+
+/** Hide or show every annotation of one type. Hidden types stay on the sequence. */
+export function setAnnotationTypeShown(hiddenTypes: readonly string[], type: string, shown: boolean): string[] {
+  const rest = hiddenTypes.filter((item) => item !== type);
+  return shown ? rest : [...rest, type];
+}
+
+/** Annotations drawn on the sequence: individually checked, and of a type that is on. */
+export function visibleAnnotations(annotations: ProteinAnnotation[], hiddenTypes: readonly string[]): ProteinAnnotation[] {
+  const hidden = new Set(hiddenTypes);
+  return annotations.filter((annotation) => annotation.visible !== false && !hidden.has(annotation.type));
+}
+
+/** The next or previous start of a type, wrapping at the ends of the sequence. */
+export function nextAnnotationStart(
+  annotations: ProteinAnnotation[],
+  type: string,
+  cursor: number,
+  direction: 1 | -1,
+): number | null {
+  const starts = [
+    ...new Set(annotations.filter((item) => item.type === type && item.visible !== false).map((item) => item.start)),
+  ].sort((a, b) => a - b);
+  if (!starts.length) return null;
+  if (direction > 0) return starts.find((start) => start > cursor) ?? starts[0];
+  return [...starts].reverse().find((start) => start < cursor) ?? starts[starts.length - 1];
 }
 
 /** Where a span sits on a full-width overview, as fractions of the sequence. */

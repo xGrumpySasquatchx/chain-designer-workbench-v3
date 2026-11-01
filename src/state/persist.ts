@@ -227,6 +227,9 @@ function readProteinDraft(value: unknown): ProteinDraft | null {
     translationId: typeof draft.translationId === 'string' ? draft.translationId : null,
     onPanel: draft.onPanel === true,
     annotations: Array.isArray(draft.annotations) ? draft.annotations.flatMap(readProteinAnnotation) : [],
+    hiddenAnnotationTypes: Array.isArray(draft.hiddenAnnotationTypes)
+      ? draft.hiddenAnnotationTypes.filter((item) => typeof item === 'string' && item.length > 0)
+      : [],
   };
 }
 

@@ -65,6 +65,8 @@ export interface ProteinDraft {
   translationId: string | null;
   onPanel: boolean;
   annotations: ProteinAnnotation[];
+  /** Types hidden in the sequence viewer. The annotations stay on the sequence. */
+  hiddenAnnotationTypes: string[];
 }
 export type Grain = 'fmt' | 'chn' | 'var' | 'mut' | 'con' | 'exp';
 

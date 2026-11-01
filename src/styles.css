@@ -128,7 +128,20 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .protein-reviewed{display:flex; align-items:center; gap:6px; font-size:12px}
 .protein-hits{list-style:none; margin:0; padding:0; border:1px solid var(--rule); border-radius:4px; max-height:280px; overflow:auto}
 .protein-seq{font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.45; overflow-wrap:anywhere}
-.gsv,.gsv-panel{display:flex; flex-direction:column; gap:8px; margin:16px 0; max-width:920px}
+.gsv,.gsv-panel{display:flex; flex-direction:column; gap:8px; margin:16px 0}
+.gsv-stage{display:flex; gap:8px; align-items:flex-start; min-width:0}
+.gsv-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:8px}
+.gsv-types{flex:0 0 248px; max-height:520px; overflow:auto; border:1px solid var(--rule); border-radius:4px; background:var(--card); padding:8px; display:flex; flex-direction:column; gap:8px}
+.gsv-types .search{width:100%}
+.gsv-type-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
+.gsv-type-row{display:flex; align-items:center; gap:4px}
+.gsv-type-row .seq-check{flex:1 1 auto; min-width:0}
+.gsv-type-row .nm{overflow:hidden; text-overflow:ellipsis}
+.gsv-type-swatch{width:14px; height:10px; border-radius:2px; flex:none}
+.gsv-ann-line.is-type-off{opacity:.45}
+.gsv-ann-bar.is-dim{opacity:.28}
+.gsv-ann-bar.is-hit{outline:2px solid var(--ink); outline-offset:1px}
+@media (max-width:820px){.gsv-stage{flex-direction:column}.gsv-types{flex:none; width:100%; max-height:320px}}
 .gsv h3,.gsv h4,.gsv-panel h3{margin:0}
 .gsv-toolbar,.gsv-head{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .gsv-head{flex-direction:column; align-items:flex-start; gap:4px}

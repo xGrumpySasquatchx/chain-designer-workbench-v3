@@ -29,7 +29,11 @@ import {
   aminoAcidSequence,
   annotationLanes,
   annotationSpan,
+  annotationTypeCounts,
   annotationsFromSequence,
+  nextAnnotationStart,
+  setAnnotationTypeShown,
+  visibleAnnotations,
   applyProteinHit,
   cloningPanel,
   crc64,
@@ -1213,6 +1217,27 @@ check(
     variantRecord.features[1].name === 'ATP' &&
     variantRecord.features[1].start === 12 &&
     variantRecord.features[1].end === 12,
+);
+
+const typeSample = [
+  { id: 'chain', type: 'Chain', name: 'Insulin', start: 1, end: 110, note: '', visible: true },
+  { id: 'h1', type: 'Helix', name: 'Helix', start: 10, end: 12, note: '', visible: true },
+  { id: 'h2', type: 'Helix', name: 'Helix', start: 40, end: 44, note: '', visible: true },
+  { id: 'v', type: 'Natural variant', name: 'R→C', start: 6, end: 6, note: '', visible: false },
+];
+const hiddenHelix = setAnnotationTypeShown([], 'Helix', false);
+check(
+  'an annotation type can be hidden without removing it, and the next instance wraps',
+  annotationTypeCounts(typeSample)
+    .map((item) => `${item.type}:${item.count}`)
+    .join(',') === 'Chain:1,Helix:2,Natural variant:1' &&
+    visibleAnnotations(typeSample, hiddenHelix)
+      .map((item) => item.id)
+      .join(',') === 'chain' &&
+    setAnnotationTypeShown(hiddenHelix, 'Helix', true).join(',') === '' &&
+    nextAnnotationStart(typeSample, 'Helix', 40, 1) === 10 &&
+    nextAnnotationStart(typeSample, 'Helix', 10, -1) === 40 &&
+    nextAnnotationStart(typeSample, 'Natural variant', 1, 1) === null,
 );
 
 const panelSequence = {

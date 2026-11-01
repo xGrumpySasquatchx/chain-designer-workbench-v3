@@ -382,7 +382,7 @@ PROTEIN: list[tuple[str, str]] = [
     ),
     ("li", "Zoom out and Zoom in change the residue size. At a high zoom, amino acids are shown as three-letter codes when you are not editing."),
     ("li", "Amino acids and Reverse translation turn those rows on or off. The DNA row is the reverse translation of the preferred codon category, or of the registered string you checked."),
-    ("li", "Annotations shows or hides every bar at once. The list of annotations stays. Uncheck one annotation to hide that bar and leave the others. Overlapping spans stack in separate lanes, so a long feature list remains readable."),
+    ("li", "Annotations and Tracks sits to the right of the sequence. Show annotations turns every bar on or off. Each annotation type has its own checkbox. Unchecking a type hides it and leaves the annotations on the sequence. Previous and Next move along the annotations of that type. Highlight name or note marks matching annotations on the sequence. The list under the sequence still has one checkbox per annotation."),
     ("li", "A map above the residues draws every annotation across the whole sequence, fitted to the panel. Linear keeps the residues on one scrolling row, so click a bar in the map to bring that part of the sequence into view. Wrap fits each row to the width of the viewer and numbers the first residue of each row."),
     ("li", "Edit sequence lets you change the amino acids. Done editing returns to the residue view."),
     ("li", "Add an annotation with a type, a name, and a start and end. Click a bar to move the cursor to that span."),

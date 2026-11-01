@@ -4,10 +4,14 @@ import {
   addProteinAnnotation,
   annotationLanes,
   annotationSpan,
+  annotationTypeCounts,
   annotationsFromSequence,
   chosenTranslation,
   editAminoAcids,
+  nextAnnotationStart,
   sequenceRows,
+  setAnnotationTypeShown,
+  visibleAnnotations,
 } from '../model/proteins';
 import { characterizedTranslations, preferredTranslation } from '../model/sequences';
 import type { NucleotideTranslation } from '../model/sequences';
@@ -45,6 +49,7 @@ export function ProteinSequenceViewer({
   const [trackWidth, setTrackWidth] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState(1);
+  const [highlight, setHighlight] = useState('');
   const [draftAnn, setDraftAnn] = useState({ type: 'Domain', name: '', start: '1', end: '1', note: '' });
   useEffect(() => {
     if (sequence && draft.annotations.length === 0) {
@@ -71,9 +76,9 @@ export function ProteinSequenceViewer({
   const cell = letters ? Math.round((zoom / 100) * 28) : Math.round((zoom / 100) * 18);
   const at = Math.min(amino.length, Math.max(1, cursor));
   const codon = dna.slice((at - 1) * 3, at * 3);
-  const covering = draft.annotations.filter(
-    (annotation) => annotation.visible !== false && annotation.start <= at && annotation.end >= at,
-  );
+  const hiddenTypes = draft.hiddenAnnotationTypes ?? [];
+  const drawn = visibleAnnotations(draft.annotations, hiddenTypes);
+  const covering = drawn.filter((annotation) => annotation.start <= at && annotation.end >= at);
   const perLine = wrapped && trackWidth > 0 ? Math.max(8, Math.floor((trackWidth - 16) / cell)) : amino.length;
   const rows = sequenceRows(amino.length, perLine);
 
@@ -83,9 +88,9 @@ export function ProteinSequenceViewer({
         <h3>Sequence viewer</h3>
         <p className="sm">
           Amino acids and the reverse translation. Zoom, annotations, and editing follow the Geneious sequence view.
-          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. The map
-          above the residues draws every annotation across the whole sequence. Linear keeps one scrolling row. Wrap
-          fits each row to the viewer. Uncheck an annotation to hide it.
+          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. Annotations
+          and Tracks, to the right, turns each annotation type on or off. The map above the residues draws the types
+          that are on. Linear keeps one scrolling row. Wrap fits each row to the viewer.
         </p>
       </div>
       <div className="gsv-toolbar">
@@ -136,39 +141,61 @@ export function ProteinSequenceViewer({
           />
         </label>
       ) : null}
-      {showAnnotations ? (
-        <AnnotationOverview
-          annotations={draft.annotations}
-          length={amino.length}
-          onCursor={(position) => focusResidue(trackRef.current, position, setCursor)}
-        />
-      ) : null}
-      <div
-        ref={trackRef}
-        className={`gsv-track${wrapped ? ' wrap' : ' linear'}`}
-        style={{ '--gsv-cell': `${cell}px` } as CSSProperties}
-      >
-        <div className="gsv-lines">
-          {rows.map((row) => (
-            <SequenceLine
-              key={row.start}
-              row={row}
-              amino={amino}
-              dna={dna}
-              letters={letters}
-              cursor={at}
-              wrapped={wrapped}
-              showAmino={showAmino}
-              showDna={showDna}
-              showAnnotations={showAnnotations}
-              annotations={draft.annotations}
-              onCursor={setCursor}
+      <div className="gsv-stage">
+        <div className="gsv-main">
+          {showAnnotations ? (
+            <AnnotationOverview
+              annotations={drawn}
+              length={amino.length}
+              highlight={highlight}
+              onCursor={(position) => focusResidue(trackRef.current, position, setCursor)}
             />
-          ))}
+          ) : null}
+          <div
+            ref={trackRef}
+            className={`gsv-track${wrapped ? ' wrap' : ' linear'}`}
+            style={{ '--gsv-cell': `${cell}px` } as CSSProperties}
+          >
+            <div className="gsv-lines">
+              {rows.map((row) => (
+                <SequenceLine
+                  key={row.start}
+                  row={row}
+                  amino={amino}
+                  dna={dna}
+                  letters={letters}
+                  cursor={at}
+                  wrapped={wrapped}
+                  showAmino={showAmino}
+                  showDna={showDna}
+                  showAnnotations={showAnnotations}
+                  annotations={drawn}
+                  highlight={highlight}
+                  onCursor={setCursor}
+                />
+              ))}
+            </div>
+          </div>
         </div>
+        <AnnotationTypes
+          annotations={draft.annotations}
+          hiddenTypes={hiddenTypes}
+          showAnnotations={showAnnotations}
+          highlight={highlight}
+          onHighlight={setHighlight}
+          onShowAnnotations={setShowAnnotations}
+          onToggleType={(type, shown) =>
+            onChange({ ...draft, hiddenAnnotationTypes: setAnnotationTypeShown(hiddenTypes, type, shown) })
+          }
+          onJump={(type, direction) => {
+            const start = nextAnnotationStart(draft.annotations, type, at, direction);
+            if (start != null) focusResidue(trackRef.current, start, setCursor);
+          }}
+        />
       </div>
       <AnnotationEditor
           annotations={draft.annotations}
+          hiddenTypes={hiddenTypes}
           length={amino.length}
           draftAnn={draftAnn}
           onDraftAnn={setDraftAnn}
@@ -324,10 +351,12 @@ function focusResidue(track: HTMLDivElement | null, position: number, onCursor: 
 function AnnotationOverview({
   annotations,
   length,
+  highlight,
   onCursor,
 }: {
   annotations: ProteinAnnotation[];
   length: number;
+  highlight: string;
   onCursor: (position: number) => void;
 }) {
   const lanes = annotationLanes(annotations);
@@ -343,7 +372,7 @@ function AnnotationOverview({
             <button
               key={item.annotation.id}
               type="button"
-              className={`gsv-ann-bar ${annColor(item.annotation.type)}`}
+              className={`gsv-ann-bar ${annColor(item.annotation.type)} ${highlightClass(item.annotation, highlight)}`}
               style={{
                 left: `${span.left * 100}%`,
                 width: `max(${span.width * 100}%, 6px)`,
@@ -365,6 +394,80 @@ function AnnotationOverview({
   );
 }
 
+function highlightClass(annotation: ProteinAnnotation, highlight: string): string {
+  const query = highlight.trim().toLowerCase();
+  if (!query) return '';
+  const haystack = `${annotation.type} ${annotation.name} ${annotation.note}`.toLowerCase();
+  return haystack.includes(query) ? 'is-hit' : 'is-dim';
+}
+
+function AnnotationTypes({
+  annotations,
+  hiddenTypes,
+  showAnnotations,
+  highlight,
+  onHighlight,
+  onShowAnnotations,
+  onToggleType,
+  onJump,
+}: {
+  annotations: ProteinAnnotation[];
+  hiddenTypes: string[];
+  showAnnotations: boolean;
+  highlight: string;
+  onHighlight: (value: string) => void;
+  onShowAnnotations: (shown: boolean) => void;
+  onToggleType: (type: string, shown: boolean) => void;
+  onJump: (type: string, direction: 1 | -1) => void;
+}) {
+  const hidden = new Set(hiddenTypes);
+  const types = annotationTypeCounts(annotations);
+  return (
+    <aside className="gsv-types" aria-label="Annotations and Tracks">
+      <h4>Annotations and Tracks</h4>
+      <label className="seq-check">
+        <input
+          type="checkbox"
+          checked={showAnnotations}
+          onChange={(event) => onShowAnnotations(event.target.checked)}
+        />
+        <span>Show annotations</span>
+      </label>
+      <input
+        className="search"
+        value={highlight}
+        placeholder="Highlight name or note"
+        aria-label="Highlight annotations"
+        onChange={(event) => onHighlight(event.target.value)}
+      />
+      <p className="sm">Uncheck a type to hide it. The annotations stay on the sequence.</p>
+      <ul className="gsv-type-list">
+        {types.map((item) => (
+          <li key={item.type} className="gsv-type-row">
+            <label className="seq-check">
+              <input
+                type="checkbox"
+                checked={!hidden.has(item.type)}
+                aria-label={`Show ${item.type}`}
+                onChange={(event) => onToggleType(item.type, event.target.checked)}
+              />
+              <span className={`gsv-type-swatch ${annColor(item.type)}`} aria-hidden="true" />
+              <span className="nm">{item.type}</span>
+              <span className="n">{item.count}</span>
+            </label>
+            <button type="button" className="btn sm" aria-label={`Previous ${item.type}`} onClick={() => onJump(item.type, -1)}>
+              Prev
+            </button>
+            <button type="button" className="btn sm" aria-label={`Next ${item.type}`} onClick={() => onJump(item.type, 1)}>
+              Next
+            </button>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
 function annColor(type: string): string {
   let hash = 0;
   for (let index = 0; index < type.length; index += 1) hash = (hash + type.charCodeAt(index)) % 4;
@@ -382,6 +485,7 @@ function SequenceLine({
   showDna,
   showAnnotations,
   annotations,
+  highlight,
   onCursor,
 }: {
   row: { start: number; end: number };
@@ -394,6 +498,7 @@ function SequenceLine({
   showDna: boolean;
   showAnnotations: boolean;
   annotations: ProteinAnnotation[];
+  highlight: string;
   onCursor: (position: number) => void;
 }) {
   const residues: number[] = [];
@@ -417,7 +522,7 @@ function SequenceLine({
             <button
               key={item.annotation.id}
               type="button"
-              className={`gsv-ann-bar ${annColor(item.annotation.type)}`}
+              className={`gsv-ann-bar ${annColor(item.annotation.type)} ${highlightClass(item.annotation, highlight)}`}
               style={{
                 left: `calc(${item.start - row.start} * var(--gsv-cell))`,
                 width: `calc(${item.end - item.start + 1} * var(--gsv-cell))`,
@@ -466,6 +571,7 @@ function SequenceLine({
 
 function AnnotationEditor({
   annotations,
+  hiddenTypes,
   length,
   draftAnn,
   onDraftAnn,
@@ -474,6 +580,7 @@ function AnnotationEditor({
   onToggle,
 }: {
   annotations: ProteinAnnotation[];
+  hiddenTypes: string[];
   length: number;
   draftAnn: { type: string; name: string; start: string; end: string; note: string };
   onDraftAnn: (next: { type: string; name: string; start: string; end: string; note: string }) => void;
@@ -482,16 +589,18 @@ function AnnotationEditor({
   onToggle: (id: string) => void;
 }) {
   const ordered = [...annotations].sort((a, b) => a.start - b.start || a.end - b.end || a.name.localeCompare(b.name));
-  const shown = ordered.filter((annotation) => annotation.visible !== false).length;
+  const shown = visibleAnnotations(annotations, hiddenTypes).length;
+  const hidden = new Set(hiddenTypes);
   return (
     <div className="gsv-annotations">
       <h4>Annotations</h4>
       <p className="sm">
-        {shown} of {ordered.length} drawn on the sequence. Uncheck one to hide it.
+        {shown} of {ordered.length} drawn on the sequence. Uncheck one annotation to hide that one. A type that is off
+        hides every annotation of that type.
       </p>
       <ul className="protein-hits gsv-ann-list">
         {ordered.map((annotation) => (
-          <li key={annotation.id} className="gsv-ann-line">
+          <li key={annotation.id} className={`gsv-ann-line${hidden.has(annotation.type) ? ' is-type-off' : ''}`}>
             <label className="seq-check">
               <input
                 type="checkbox"
