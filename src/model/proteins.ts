@@ -1,4 +1,14 @@
-import type { ProteinDraft, ProteinFamily, ProteinSequenceRecord, ProteinUse } from './types';
+import { characterizedTranslations, preferredTranslation } from './sequences';
+import type {
+  ProteinAnnotation,
+  ProteinDraft,
+  ProteinFamily,
+  ProteinRole,
+  ProteinScheme,
+  ProteinSequenceRecord,
+  ProteinUse,
+} from './types';
+import type { NucleotideRegistration, NucleotideTranslation } from './sequences';
 
 export const PROTEIN_FAMILIES: { id: ProteinFamily; label: string }[] = [
   { id: 'receptor', label: 'Receptors' },
@@ -139,7 +149,112 @@ export function newProteinDraft(drafts: ProteinDraft[], basis?: ProteinRecord): 
     use: null,
     note: '',
     sequence: null,
+    role: null,
+    parts: 1,
+    translationId: null,
+    onPanel: false,
+    annotations: [],
   };
+}
+
+export const PROTEIN_ROLES: { id: ProteinRole; label: string; note: string }[] = [
+  { id: 'stoichiometry', label: 'Stoichiometry', note: 'Several chains in a fixed ratio, as with a TCR.' },
+  { id: 'scaffold', label: 'Scaffold', note: 'A scaffold to build from.' },
+  { id: 'antigen', label: 'Antigen', note: 'A protein to make for an assay.' },
+];
+
+export const PROTEIN_SCHEMES: { id: ProteinScheme; label: string; note: string }[] = [
+  {
+    id: 'together',
+    label: 'One co-transfection',
+    note: 'Parts are the share of each protein in one transfection mix.',
+  },
+  {
+    id: 'separate',
+    label: 'One plasmid per protein',
+    note: 'Each protein is its own transfection. Parts still record the planned mix.',
+  },
+];
+
+const AA_LETTERS = /[^ACDEFGHIKLMNPQRSTVWY]/g;
+
+export function proteinRoleLabel(role: ProteinRole | null): string {
+  return PROTEIN_ROLES.find((item) => item.id === role)?.label ?? 'Choose how it is cloned';
+}
+
+/** The chain annotation that arrives with a brought-in sequence. */
+export function chainAnnotation(sequence: ProteinSequenceRecord): ProteinAnnotation {
+  const length = sequence.sequence.length || sequence.length;
+  return {
+    id: 'chain',
+    type: 'Chain',
+    name: sequence.proteinName || sequence.accession || 'Chain',
+    start: 1,
+    end: Math.max(1, length),
+    note: sequence.functionText,
+  };
+}
+
+/** Keep annotations inside the sequence after an edit. */
+export function clampAnnotations(annotations: ProteinAnnotation[], length: number): ProteinAnnotation[] {
+  return annotations.flatMap((annotation) => {
+    const start = Math.max(1, Math.min(length, Math.round(annotation.start)));
+    const end = Math.max(start, Math.min(length, Math.round(annotation.end)));
+    if (length < 1) return [];
+    return [{ ...annotation, start, end }];
+  });
+}
+
+/** Replace the amino-acid sequence. Reverse translation is derived again from the new residues. */
+export function editAminoAcids(draft: ProteinDraft, raw: string): ProteinDraft {
+  const sequence = raw.toUpperCase().replace(AA_LETTERS, '');
+  if (!sequence || !draft.sequence) return draft;
+  const next = { ...draft.sequence, sequence, length: sequence.length };
+  return {
+    ...draft,
+    sequence: next,
+    annotations: clampAnnotations(draft.annotations.length ? draft.annotations : [chainAnnotation(next)], sequence.length),
+  };
+}
+
+export function addProteinAnnotation(draft: ProteinDraft, annotation: Omit<ProteinAnnotation, 'id'>): ProteinDraft {
+  const length = draft.sequence?.sequence.length ?? 0;
+  if (length < 1) return draft;
+  const n =
+    draft.annotations.reduce((max, item) => {
+      const matched = /^ann-(\d+)$/.exec(item.id);
+      return matched ? Math.max(max, Number(matched[1])) : max;
+    }, 0) + 1;
+  const [placed] = clampAnnotations([{ ...annotation, id: `ann-${n}` }], length);
+  if (!placed) return draft;
+  return { ...draft, annotations: [...draft.annotations, placed] };
+}
+
+export interface ChosenTranslation {
+  category: NucleotideTranslation;
+  registration: NucleotideRegistration | null;
+  dna: string;
+}
+
+/** The preferred codon category, or the registered string the user checked. */
+export function chosenTranslation(draftId: string, aminoAcid: string, pick: string | null): ChosenTranslation | null {
+  if (!aminoAcid) return null;
+  const list = characterizedTranslations(draftId, aminoAcid);
+  const preferred = preferredTranslation(list);
+  if (!preferred) return null;
+  const category =
+    list.find((item) => item.id === pick || (item.registrations ?? []).some((registration) => registration.id === pick)) ??
+    preferred;
+  const registration =
+    (category.registrations ?? []).find((item) => item.id === pick) ?? category.registrations?.[0] ?? null;
+  return { category, registration, dna: registration?.dna ?? category.dna ?? '' };
+}
+
+/** Proteins on the cloning panel, in draft order, with a ratio such as 1:1. */
+export function cloningPanel(drafts: ProteinDraft[]): { members: ProteinDraft[]; ratio: string } {
+  const members = drafts.filter((draft) => draft.onPanel && draft.sequence);
+  const ratio = members.map((draft) => String(draft.parts)).join(':');
+  return { members, ratio };
 }
 
 export type ProteinSearchBy = 'name' | 'sequence';
@@ -267,12 +382,16 @@ function draftHit(draft: ProteinDraft, exact: boolean): ProteinLookupHit {
 export function applyProteinHit(draft: ProteinDraft, hit: ProteinLookupHit): ProteinDraft {
   const basis = hit.basisId ? proteinById(hit.basisId) : undefined;
   const name = hit.sequence?.proteinName || (hit.basisId && !hit.sequence ? `${hit.title} design` : hit.title);
+  const sequence = hit.sequence ?? draft.sequence;
+  const replaced = hit.sequence && hit.sequence.sequence !== draft.sequence?.sequence;
   return {
     ...draft,
     name,
     family: basis?.family ?? draft.family,
     basisId: hit.basisId ?? draft.basisId,
-    sequence: hit.sequence ?? draft.sequence,
+    sequence,
+    annotations: hit.sequence ? [chainAnnotation(hit.sequence)] : draft.annotations,
+    translationId: replaced ? null : draft.translationId,
   };
 }
 

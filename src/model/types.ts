@@ -3,6 +3,20 @@ export type Tier = 1 | 2 | 3 | 4 | 5 | 6;
 export type ProductKind = 'antibody' | 'protein';
 export type ProteinFamily = 'receptor' | 'human' | 'nonhuman' | 'engineered';
 export type ProteinUse = 'delivery' | 'antagonism';
+/** How this protein is taken into cloning: a ratioed complex, a scaffold, or an assay antigen. */
+export type ProteinRole = 'stoichiometry' | 'scaffold' | 'antigen';
+/** One co-transfection, or one plasmid per protein. */
+export type ProteinScheme = 'together' | 'separate';
+
+/** A span drawn on the sequence view, in 1-based inclusive residues. */
+export interface ProteinAnnotation {
+  id: string;
+  type: string;
+  name: string;
+  start: number;
+  end: number;
+  note: string;
+}
 
 /** Sequence and metadata brought in from the registry or from UniProt. */
 export interface ProteinSequenceRecord {
@@ -28,6 +42,14 @@ export interface ProteinDraft {
   use: ProteinUse | null;
   note: string;
   sequence: ProteinSequenceRecord | null;
+  /** Stoichiometry, scaffold, or antigen once this protein is taken into cloning. */
+  role: ProteinRole | null;
+  /** Share of this protein in the transfection mix. A TCR αβ pair is 1 and 1. */
+  parts: number;
+  /** Codon category or one registered nucleotide string. Null uses the preferred category. */
+  translationId: string | null;
+  onPanel: boolean;
+  annotations: ProteinAnnotation[];
 }
 export type Grain = 'fmt' | 'chn' | 'var' | 'mut' | 'con' | 'exp';
 
@@ -339,6 +361,10 @@ export interface State {
   sequencePicks: Record<string, string>;
   proteinDrafts: ProteinDraft[];
   activeProteinId: string | null;
+  /** Expression strategy for the protein cloning panel. */
+  proteinExpression: ExpressionPlan;
+  /** One co-transfection, or one plasmid per protein. */
+  proteinScheme: ProteinScheme;
 }
 
 export interface Model {

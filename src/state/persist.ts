@@ -9,8 +9,11 @@ import type {
   HostId,
   LumaMolecule,
   LumaPanel,
+  ProteinAnnotation,
   ProteinDraft,
   ProteinFamily,
+  ProteinRole,
+  ProteinScheme,
   ProteinSequenceRecord,
   ProteinUse,
   RequestDoc,
@@ -24,6 +27,8 @@ const CODONS: CodonMethod[] = ['adapt', 'harmonize', 'rare', 'keep'];
 const MODES: ExpressionMode[] = ['transient', 'stable'];
 const PROTEIN_FAMILIES: ProteinFamily[] = ['receptor', 'human', 'nonhuman', 'engineered'];
 const PROTEIN_USES: ProteinUse[] = ['delivery', 'antagonism'];
+const PROTEIN_ROLES: ProteinRole[] = ['stoichiometry', 'scaffold', 'antigen'];
+const PROTEIN_SCHEMES: ProteinScheme[] = ['together', 'separate'];
 
 const KEY = 'protein-chain-workbench-v3';
 
@@ -51,6 +56,8 @@ export function defaultState(): State {
     sequencePicks: {},
     proteinDrafts: [],
     activeProteinId: null,
+    proteinExpression: EMPTY_EXPRESSION,
+    proteinScheme: 'together',
   };
 }
 
@@ -114,6 +121,9 @@ export function loadState(): State {
       });
     }
     if (typeof r.activeProteinId === 'string') base.activeProteinId = r.activeProteinId;
+    if (isPlan(r.proteinExpression)) base.proteinExpression = { ...EMPTY_EXPRESSION, ...r.proteinExpression, mode: r.proteinExpression.mode ?? null };
+    const scheme = oneOf(r.proteinScheme, PROTEIN_SCHEMES);
+    if (scheme) base.proteinScheme = scheme;
   } catch {
     return defaultState();
   }
@@ -191,7 +201,32 @@ function readProteinDraft(value: unknown): ProteinDraft | null {
   ) {
     return null;
   }
-  return { ...draft, sequence };
+  const parts = typeof draft.parts === 'number' && Number.isFinite(draft.parts) && draft.parts >= 0 ? draft.parts : 1;
+  return {
+    ...draft,
+    sequence,
+    role: oneOf(draft.role, PROTEIN_ROLES),
+    parts,
+    translationId: typeof draft.translationId === 'string' ? draft.translationId : null,
+    onPanel: draft.onPanel === true,
+    annotations: Array.isArray(draft.annotations) ? draft.annotations.flatMap(readProteinAnnotation) : [],
+  };
+}
+
+function readProteinAnnotation(value: unknown): ProteinAnnotation[] {
+  if (!value || typeof value !== 'object') return [];
+  const annotation = value as ProteinAnnotation;
+  if (
+    typeof annotation.id !== 'string' ||
+    typeof annotation.type !== 'string' ||
+    typeof annotation.name !== 'string' ||
+    typeof annotation.note !== 'string' ||
+    typeof annotation.start !== 'number' ||
+    typeof annotation.end !== 'number'
+  ) {
+    return [];
+  }
+  return [annotation];
 }
 
 function readProteinSequence(value: unknown): ProteinSequenceRecord | null {

@@ -820,6 +820,10 @@ export default function App() {
               proteinDrafts: current.proteinDrafts.map((item) => (item.id === draft.id ? draft : item)),
             }))
           }
+          expression={state.proteinExpression}
+          scheme={state.proteinScheme}
+          onExpression={(plan) => setState((current) => ({ ...current, proteinExpression: plan }))}
+          onScheme={(scheme) => setState((current) => ({ ...current, proteinScheme: scheme }))}
         />
       ) : (
       <>

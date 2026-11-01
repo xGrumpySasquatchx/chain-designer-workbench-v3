@@ -10,7 +10,7 @@ import { applyMutations, mutationRelevant, specificVectorIds } from '../src/mode
 import { EMPTY_DESIGN, designForFormat, fvForWell, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
 import { classifyFormat, constructSchemes, constructsProduced, polypeptides, rankConstructs } from '../src/model/inference';
 import { levelSteps, showDesignSteps } from '../src/model/levels';
-import { chainRegions, insertsOf, nucleotideTranslations, registeredStrings, translateDna } from '../src/model/sequences';
+import { chainRegions, characterizedTranslations, insertsOf, nucleotideTranslations, registeredStrings, translateDna } from '../src/model/sequences';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -26,7 +26,9 @@ import {
   PROTEINS,
   aminoAcidSequence,
   applyProteinHit,
+  cloningPanel,
   crc64,
+  editAminoAcids,
   newProteinDraft,
   parseUniProtSearch,
   proteinById,
@@ -1103,6 +1105,34 @@ check(
     bySequence.length === 1 &&
     bySequence[0].sequence?.accession === 'P01308' &&
     searchInternalProteins('sequence', insulin.slice(0, 20), []).length === 0,
+);
+
+const brought = applyProteinHit(newProteinDraft([]), insulinHit);
+const shortened = editAminoAcids(brought, `${insulin.slice(0, 20)}123`);
+const translations = characterizedTranslations(brought.id, insulin);
+const preferredStrings = translations[0]?.registrations ?? [];
+const panelPair = cloningPanel([
+  { ...brought, onPanel: true, role: 'stoichiometry', parts: 1 },
+  { ...brought, id: 'PRT-R002', onPanel: true, role: 'antigen', parts: 1 },
+]);
+check(
+  'a brought-in protein can be inspected, reverse translated, edited, and placed on a cloning panel',
+  brought.annotations.length === 1 &&
+    brought.annotations[0].type === 'Chain' &&
+    brought.annotations[0].end === 110 &&
+    brought.role === null &&
+    brought.parts === 1 &&
+    brought.onPanel === false &&
+    shortened.sequence?.sequence === insulin.slice(0, 20) &&
+    shortened.annotations[0].end === 20 &&
+    translations.length === 3 &&
+    translations[0].preferred === true &&
+    translations[0].name === 'CHO high-frequency' &&
+    preferredStrings.length >= 1 &&
+    preferredStrings.every((registration) => translateDna(registration.dna) === insulin) &&
+    preferredStrings[0].dna.startsWith('ATG') &&
+    panelPair.members.length === 2 &&
+    panelPair.ratio === '1:1',
 );
 
 console.log('\nAll selection checks passed.');

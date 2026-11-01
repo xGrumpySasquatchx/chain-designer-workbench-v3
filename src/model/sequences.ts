@@ -340,6 +340,11 @@ function binderOf(design: PadDesign, slotIndex: number, slotCount: number): stri
   return slotIndex < Math.ceil(slotCount / 2) ? left || right : right || left;
 }
 
+/** Three characterized codon categories for one amino-acid sequence, each with its registered strings. */
+export function characterizedTranslations(id: string, aminoAcid: string): NucleotideTranslation[] {
+  return codonVersions(id, aminoAcid, 3);
+}
+
 function codonVersions(id: string, aminoAcid: string, variants: number): NucleotideTranslation[] {
   const count = variants;
   return CODON_NAMES.slice(0, count).map((item, index) => {
