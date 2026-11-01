@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import {
   PROTEIN_FAMILIES,
   PROTEIN_SCHEMES,
@@ -286,6 +286,15 @@ function DraftProtein({
   onChange: (draft: ProteinDraft) => void;
 }) {
   const basis = draft.basisId ? proteinById(draft.basisId) : undefined;
+  const broughtRef = useRef<HTMLDivElement>(null);
+  const shownAccession = useRef(draft.sequence?.accession ?? '');
+  useEffect(() => {
+    const accession = draft.sequence?.accession ?? '';
+    if (accession && accession !== shownAccession.current) {
+      broughtRef.current?.scrollIntoView({ block: 'start' });
+    }
+    shownAccession.current = accession;
+  }, [draft.sequence?.accession]);
   return (
     <>
       <p className="mono">{draft.id}</p>
@@ -372,8 +381,12 @@ function DraftProtein({
         </p>
       ) : null}
       <p className="sm">Chosen area: {proteinUseLabel(draft.use)}.</p>
+      {draft.sequence ? (
+        <div ref={broughtRef}>
+          <BroughtSequence sequence={draft.sequence} />
+        </div>
+      ) : null}
       {draft.sequence ? <ProteinSequenceViewer draft={draft} onChange={onChange} /> : null}
-      {draft.sequence ? <BroughtSequence sequence={draft.sequence} /> : null}
     </>
   );
 }
@@ -457,11 +470,25 @@ function ProteinLookup({
       const found = await searchUniProt(by, query, reviewed);
       setHits(found);
       setMessage(found.length ? '' : lookupEmpty(source, by));
+      if (found.length === 1) await bringIn(found[0]);
     } catch (error) {
       setHits([]);
       setMessage(error instanceof Error ? error.message : 'UniProt could not be reached.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function bringIn(hit: ProteinLookupHit) {
+    const base = draft;
+    onChange(applyProteinHit(base, hit));
+    if (hit.origin !== 'uniprot' || !hit.sequence) return;
+    setPicking(hit.key);
+    try {
+      const sequence = (await fetchUniProtEntry(hit.sequence.accession)) ?? hit.sequence;
+      onChange(applyProteinHit(base, { ...hit, sequence }));
+    } finally {
+      setPicking('');
     }
   }
 
@@ -521,18 +548,7 @@ function ProteinLookup({
                 className="req-row"
                 disabled={picking === hit.key}
                 onClick={() => {
-                  void (async () => {
-                    setPicking(hit.key);
-                    try {
-                      const sequence =
-                        hit.origin === 'uniprot' && hit.sequence
-                          ? (await fetchUniProtEntry(hit.sequence.accession)) ?? hit.sequence
-                          : hit.sequence;
-                      onChange(applyProteinHit(draft, { ...hit, sequence }));
-                    } finally {
-                      setPicking('');
-                    }
-                  })();
+                  void bringIn(hit);
                 }}
               >
                 <span className="nm">{hit.title}</span>

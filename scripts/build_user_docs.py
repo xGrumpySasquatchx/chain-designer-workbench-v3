@@ -373,7 +373,7 @@ PROTEIN: list[tuple[str, str]] = [
     ("li", "UniProt, by sequence, matches the full sequence. A fragment is found among proteins already stored here, not as a partial UniProt search."),
     (
         "p",
-        "Select a hit to copy it onto the draft. Insulin, for example, arrives as accession P01308, entry INS_HUMAN, gene INS, organism Homo sapiens, and its amino-acid sequence, together with the features UniProt records for that entry. Delete the draft from the left column when you no longer need it.",
+        "One UniProt hit is copied onto the draft when you click Search, and its accession, metadata, and sequence appear under the draft fields. When several hits are listed, select the one to copy. Insulin, for example, arrives as accession P01308, entry INS_HUMAN, gene INS, organism Homo sapiens, and its amino-acid sequence, together with the features UniProt records for that entry. Delete the draft from the left column when you no longer need it.",
     ),
     ("h1", "Read the sequence"),
     (
