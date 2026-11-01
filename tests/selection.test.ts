@@ -18,7 +18,8 @@ import { emptySel, matchingIds, resolve, sortedIds } from '../src/model/selectio
 import { EMPTY_EXPRESSION, registerExpression, withHost } from '../src/model/expression';
 import { groupConstructs, planCombinations, ungroupConstructs } from '../src/model/combinations';
 import { textPdf } from '../src/model/pdf';
-import { recipeLines } from '../src/model/recipe';
+import { proteinGaalCsv, proteinGaalJobs } from '../src/model/gaal';
+import { proteinRecipeLines, recipeLines } from '../src/model/recipe';
 import { planChainRatios } from '../src/model/ratio';
 import {
   PROTEIN_FAMILIES,
@@ -1176,6 +1177,61 @@ check(
     rows[2].end === 110 &&
     cut.sequence?.features.every((feature) => feature.start <= 20) === true &&
     cut.annotations.every((annotation) => annotation.end <= 20),
+);
+
+const panelSequence = {
+  origin: 'uniprot' as const,
+  accession: 'P01308',
+  entryName: 'INS_HUMAN',
+  proteinName: 'Insulin',
+  gene: 'INS',
+  organism: 'Homo sapiens',
+  reviewed: true,
+  length: 20,
+  sequence: insulin.slice(0, 20),
+  functionText: 'Lowers glucose.',
+  features: [],
+};
+const panelAlpha = {
+  ...newProteinDraft([]),
+  name: 'Insulin',
+  sequence: panelSequence,
+  onPanel: true,
+  role: 'antigen' as const,
+  parts: 1,
+  annotations: [
+    ...annotationsFromSequence(panelSequence),
+    { id: 'ann-1', type: 'Domain', name: 'Hidden domain', start: 1, end: 5, note: '', visible: false },
+  ],
+};
+const panelBeta = { ...panelAlpha, id: 'PRT-R002', name: 'Partner', role: 'scaffold' as const, parts: 2 };
+const togetherJobs = proteinGaalJobs([panelAlpha, panelBeta], 'together');
+const separateJobs = proteinGaalJobs([panelAlpha, panelBeta], 'separate');
+const gaalCsv = proteinGaalCsv([panelAlpha, panelBeta], 'together');
+const proteinRecipe = proteinRecipeLines({
+  generatedOn: '2026-11-01',
+  schemeNote: 'Parts are the share of each protein in one transfection mix.',
+  ratio: '1:2',
+  members: [{ id: 'PRT-R001', name: 'Insulin', accession: 'P01308', role: 'Antigen', parts: 1, translation: 'CHO high-frequency' }],
+  expressionLines: ['Mammalian'],
+});
+check(
+  'a protein panel emits one GaaL job per scheme, with no invented backbone, and a recipe for the same panel',
+  togetherJobs.length === 1 &&
+    togetherJobs[0].library === 'GaaL' &&
+    togetherJobs[0].job === 'golden_gate_assembly' &&
+    togetherJobs[0].backbone === '' &&
+    togetherJobs[0].inserts.length === 2 &&
+    togetherJobs[0].inserts[0].part.startsWith('ATG') &&
+    togetherJobs[0].annotate.includes('Insulin') &&
+    !togetherJobs[0].annotate.includes('Hidden domain') &&
+    separateJobs.length === 2 &&
+    separateJobs.every((job) => job.backbone === '' && job.inserts.length === 1) &&
+    gaalCsv.includes('PRT-R001') &&
+    gaalCsv.includes('PRT-R002') &&
+    proteinRecipe[0] === 'Protein Recipe Report' &&
+    proteinRecipe.some((line) => line.includes('No destination backbone is registered')) &&
+    proteinRecipe.some((line) => line.includes('Mammalian')),
 );
 
 console.log('\nAll selection checks passed.');

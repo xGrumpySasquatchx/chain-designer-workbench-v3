@@ -12,13 +12,13 @@ import { ConstructLibrary } from './components/ConstructLibrary';
 import { ExpressionBench, ExpressionRail } from './components/ExpressionBench';
 import { FacetRail, type FacetDef } from './components/FacetRail';
 import { InventoryCell } from './components/InventoryCell';
-import { LevelTabs } from './components/LevelTabs';
+import { LevelTabs, ProteinTabs } from './components/LevelTabs';
 import { RowTable, type Col, type Row } from './components/RowTable';
 import { FoldBtn, ResizeGrip, useSidePanels } from './components/SidePanels';
 import { PanelPick, RequestBench, RequestRail } from './components/RequestBench';
 import { KindSwitch } from './components/ProductKind';
-import { ProteinBench } from './components/ProteinBench';
-import { newProteinDraft, proteinById } from './model/proteins';
+import { ProteinStage } from './components/ProteinStage';
+import { cloningPanel, newProteinDraft, proteinById, proteinRegister } from './model/proteins';
 import { PreferredSequences } from './components/PreferredSequences';
 import { VariableRegions } from './components/VariableRegions';
 import { VLibraryRail } from './components/VLibraryRail';
@@ -369,13 +369,13 @@ export default function App() {
   }, [state]);
 
   useEffect(() => {
-    const hue = { fmt: '--fmt', chn: '--chn', var: '--vr', mut: '--mut', con: '--con', exp: '--exp' }[state.grain];
-    const bg = { fmt: '--fmt-bg', chn: '--chn-bg', var: '--vr-bg', mut: '--mut-bg', con: '--con-bg', exp: '--exp-bg' }[
-      state.grain
-    ];
+    const key =
+      state.kind === 'protein' ? (state.proteinStep === 'protein' ? 'fmt' : state.proteinStep) : state.grain;
+    const hue = { fmt: '--fmt', chn: '--chn', var: '--vr', mut: '--mut', con: '--con', exp: '--exp' }[key];
+    const bg = { fmt: '--fmt-bg', chn: '--chn-bg', var: '--vr-bg', mut: '--mut-bg', con: '--con-bg', exp: '--exp-bg' }[key];
     document.documentElement.style.setProperty('--grain', `var(${hue})`);
     document.documentElement.style.setProperty('--grain-bg', `var(${bg})`);
-  }, [state.grain]);
+  }, [state.grain, state.kind, state.proteinStep]);
 
   const book = useMemo(
     () =>
@@ -774,27 +774,73 @@ export default function App() {
         </button>
         </>
         ) : (
-          <span className="stat-grow" />
+          <>
+            <ProteinTabs
+              step={state.proteinStep}
+              proteinCount={`${state.proteinDrafts.length} draft${state.proteinDrafts.length === 1 ? '' : 's'}`}
+              constructCount={
+                cloningPanel(state.proteinDrafts).members.length
+                  ? `${cloningPanel(state.proteinDrafts).members.length} · ${cloningPanel(state.proteinDrafts).ratio}`
+                  : 'choose'
+              }
+              expressionCount={
+                state.proteinExpression.mode || state.proteinExpression.host
+                  ? [
+                      state.proteinExpression.mode ? scenarioById(state.proteinExpression.mode).name : null,
+                      state.proteinExpression.host ? hostById(state.proteinExpression.host).name : null,
+                      state.proteinExpressionRegistrations.length
+                        ? String(state.proteinExpressionRegistrations.length)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : 'choose'
+              }
+              onStep={(proteinStep) => setState((current) => ({ ...current, proteinStep }))}
+            />
+            <button
+              className="btn sm"
+              type="button"
+              title="Hide the side panels so the document fills the window."
+              onClick={sides.expandView}
+            >
+              {sides.layout.leftOpen || sides.layout.rightOpen ? 'Expand View' : 'Restore View'}
+            </button>
+          </>
         )}
         <button className="btn sm" type="button" onClick={cycleTheme}>
           Theme
         </button>
       </header>
       {state.kind === 'protein' ? (
-        <ProteinBench
+        <ProteinStage
           drafts={state.proteinDrafts}
           activeId={state.activeProteinId}
-          expanded={sides.layout.leftOpen}
+          step={state.proteinStep}
+          expression={state.proteinExpression}
+          scheme={state.proteinScheme}
+          registrations={state.proteinExpressionRegistrations}
+          expandedLeft={sides.layout.leftOpen}
+          expandedRight={sides.layout.rightOpen}
           wrapStyle={sides.wrapStyle}
-          onFold={() => sides.toggle('left')}
-          fold={<FoldBtn side="left" open={sides.layout.leftOpen} onClick={() => sides.toggle('left')} />}
-          grip={
+          foldLeft={<FoldBtn side="left" open={sides.layout.leftOpen} onClick={() => sides.toggle('left')} />}
+          gripLeft={
             <ResizeGrip
               side="left"
               onDrag={(event) => sides.startResize('left', event)}
               onReset={() => sides.resetWidth('left')}
             />
           }
+          foldRight={<FoldBtn side="right" open={sides.layout.rightOpen} onClick={() => sides.toggle('right')} />}
+          gripRight={
+            <ResizeGrip
+              side="right"
+              onDrag={(event) => sides.startResize('right', event)}
+              onReset={() => sides.resetWidth('right')}
+            />
+          }
+          onFoldLeft={() => sides.toggle('left')}
+          onFoldRight={() => sides.toggle('right')}
           onNew={(basisId) =>
             setState((current) => {
               const basis = basisId ? proteinById(basisId) : undefined;
@@ -803,10 +849,11 @@ export default function App() {
                 ...current,
                 proteinDrafts: [draft, ...current.proteinDrafts],
                 activeProteinId: draft.id,
+                proteinStep: 'protein',
               };
             })
           }
-          onOpen={(id) => setState((current) => ({ ...current, activeProteinId: id }))}
+          onOpen={(id) => setState((current) => ({ ...current, activeProteinId: id, proteinStep: 'protein' }))}
           onDelete={(id) =>
             setState((current) => ({
               ...current,
@@ -820,10 +867,19 @@ export default function App() {
               proteinDrafts: current.proteinDrafts.map((item) => (item.id === draft.id ? draft : item)),
             }))
           }
-          expression={state.proteinExpression}
-          scheme={state.proteinScheme}
           onExpression={(plan) => setState((current) => ({ ...current, proteinExpression: plan }))}
           onScheme={(scheme) => setState((current) => ({ ...current, proteinScheme: scheme }))}
+          onRegister={() =>
+            setState((current) => {
+              const record = proteinRegister(
+                current.proteinExpressionRegistrations,
+                current.proteinExpression,
+                current.proteinDrafts,
+              );
+              if (!record) return current;
+              return { ...current, proteinExpressionRegistrations: [record, ...current.proteinExpressionRegistrations] };
+            })
+          }
         />
       ) : (
       <>

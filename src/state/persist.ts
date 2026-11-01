@@ -15,6 +15,7 @@ import type {
   ProteinFeature,
   ProteinRole,
   ProteinScheme,
+  ProteinStep,
   ProteinSequenceRecord,
   ProteinUse,
   RequestDoc,
@@ -30,6 +31,7 @@ const PROTEIN_FAMILIES: ProteinFamily[] = ['receptor', 'human', 'nonhuman', 'eng
 const PROTEIN_USES: ProteinUse[] = ['delivery', 'antagonism'];
 const PROTEIN_ROLES: ProteinRole[] = ['stoichiometry', 'scaffold', 'antigen'];
 const PROTEIN_SCHEMES: ProteinScheme[] = ['together', 'separate'];
+const PROTEIN_STEPS: ProteinStep[] = ['protein', 'con', 'exp'];
 
 const KEY = 'protein-chain-workbench-v3';
 
@@ -59,6 +61,8 @@ export function defaultState(): State {
     activeProteinId: null,
     proteinExpression: EMPTY_EXPRESSION,
     proteinScheme: 'together',
+    proteinStep: 'protein',
+    proteinExpressionRegistrations: [],
   };
 }
 
@@ -100,14 +104,7 @@ export function loadState(): State {
     if (Array.isArray(r.userMolecules)) base.userMolecules = r.userMolecules.filter(isMolecule);
     if (isPlan(r.expression)) base.expression = { ...EMPTY_EXPRESSION, ...r.expression, mode: r.expression.mode ?? null };
     if (Array.isArray(r.expressionRegistrations)) {
-      base.expressionRegistrations = r.expressionRegistrations.flatMap((value) => {
-        if (!value || typeof value !== 'object') return [];
-        const record = value as ExpressionRegistration;
-        const mode = oneOf(record.mode, MODES) ?? (record.mode == null ? 'transient' : null);
-        if (!mode) return [];
-        const next = { ...record, mode };
-        return isRegistration(next) ? [next] : [];
-      });
+      base.expressionRegistrations = r.expressionRegistrations.flatMap(readRegistration);
     }
     if (isRatioMap(r.chainRatios)) base.chainRatios = r.chainRatios;
     if (isGroupMap(r.constructGroups)) base.constructGroups = r.constructGroups;
@@ -125,6 +122,11 @@ export function loadState(): State {
     if (isPlan(r.proteinExpression)) base.proteinExpression = { ...EMPTY_EXPRESSION, ...r.proteinExpression, mode: r.proteinExpression.mode ?? null };
     const scheme = oneOf(r.proteinScheme, PROTEIN_SCHEMES);
     if (scheme) base.proteinScheme = scheme;
+    const step = oneOf(r.proteinStep, PROTEIN_STEPS);
+    if (step) base.proteinStep = step;
+    if (Array.isArray(r.proteinExpressionRegistrations)) {
+      base.proteinExpressionRegistrations = r.proteinExpressionRegistrations.flatMap(readRegistration);
+    }
   } catch {
     return defaultState();
   }
@@ -174,6 +176,15 @@ function isRegistration(value: unknown): value is ExpressionRegistration {
     record.inserts.every((id) => typeof id === 'string') &&
     typeof record.registeredAt === 'string'
   );
+}
+
+function readRegistration(value: unknown): ExpressionRegistration[] {
+  if (!value || typeof value !== 'object') return [];
+  const record = value as ExpressionRegistration;
+  const mode = oneOf(record.mode, MODES) ?? (record.mode == null ? 'transient' : null);
+  if (!mode) return [];
+  const next = { ...record, mode };
+  return isRegistration(next) ? [next] : [];
 }
 
 function isGroupMap(value: unknown): value is Record<string, string> {

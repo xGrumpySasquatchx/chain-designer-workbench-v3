@@ -7,6 +7,8 @@ export type ProteinUse = 'delivery' | 'antagonism';
 export type ProteinRole = 'stoichiometry' | 'scaffold' | 'antigen';
 /** One co-transfection, or one plasmid per protein. */
 export type ProteinScheme = 'together' | 'separate';
+/** Protein, then the construct scheme, then expression. */
+export type ProteinStep = 'protein' | 'con' | 'exp';
 
 /** A span drawn on the sequence view, in 1-based inclusive residues. */
 export interface ProteinAnnotation {
@@ -378,6 +380,10 @@ export interface State {
   proteinExpression: ExpressionPlan;
   /** One co-transfection, or one plasmid per protein. */
   proteinScheme: ProteinScheme;
+  /** Protein, construct, or expression. */
+  proteinStep: ProteinStep;
+  /** Expression registrations for the protein panel, kept apart from antibody registrations. */
+  proteinExpressionRegistrations: ExpressionRegistration[];
 }
 
 export interface Model {

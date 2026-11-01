@@ -118,6 +118,8 @@ export function ExpressionBench({
   onCodonTable,
   onCodon,
   onMode,
+  level = 'Level 5',
+  emptyInserts = 'Include a chain on Level 1. Its inserts are what this codon table recodes.',
 }: {
   plan: ExpressionPlan;
   slots: { key: string; label: string; domain: string; vector: string; insert: string }[];
@@ -127,6 +129,8 @@ export function ExpressionBench({
   onCodonTable: (id: string) => void;
   onCodon: (method: CodonMethod) => void;
   onMode: (mode: ExpressionMode) => void;
+  level?: string;
+  emptyInserts?: string;
 }) {
   const host = plan.host ? hostById(plan.host) : null;
   const fit = host ? targetFit(host, plan.targetClass) : null;
@@ -137,7 +141,7 @@ export function ExpressionBench({
     <main className="panel list req-bench">
       <div className="panel-h">
         <h2>Expression</h2>
-        <span className="sm">Level 5</span>
+        <span className="sm">{level}</span>
       </div>
       <div className="req-body">
         <p className="exp-lead">
@@ -373,7 +377,7 @@ export function ExpressionBench({
                   ))}
                 </ul>
               ) : (
-                <p className="sm">Include a chain on Level 1. Its inserts are what this codon table recodes.</p>
+                <p className="sm">{emptyInserts}</p>
               )}
               <p className="sm">
                 Vector elements stay on the construct. {host.name} sets the promoter, translation start, termination,

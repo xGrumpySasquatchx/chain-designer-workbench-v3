@@ -1,6 +1,6 @@
 import { levelSteps } from '../model/levels';
 import { buildSlots } from '../model/slots';
-import type { Grain, Model, Seed } from '../model/types';
+import type { Grain, Model, ProteinStep, Seed } from '../model/types';
 
 export function LevelTabs({
   grain,
@@ -54,6 +54,47 @@ export function LevelTabs({
             <span className="tool-nm">{s.name}</span>
           </span>
           <span className={`tool-ct${s.lvl ? '' : ' plain'}`}>{counts[s.g]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ProteinTabs({
+  step,
+  proteinCount,
+  constructCount,
+  expressionCount,
+  onStep,
+}: {
+  step: ProteinStep;
+  proteinCount: string;
+  constructCount: string;
+  expressionCount: string;
+  onStep: (step: ProteinStep) => void;
+}) {
+  const steps: { id: ProteinStep; lvl: string; name: string; count: string }[] = [
+    { id: 'protein', lvl: '', name: 'Protein', count: proteinCount },
+    { id: 'con', lvl: '1', name: 'Construct', count: constructCount },
+    { id: 'exp', lvl: '2', name: 'Expression', count: expressionCount },
+  ];
+  return (
+    <div className="tool-tabs" role="tablist" aria-label="Protein level">
+      {steps.map((item) => (
+        <button
+          key={item.id}
+          className="tool"
+          data-g={item.id === 'protein' ? 'fmt' : item.id}
+          role="tab"
+          aria-selected={step === item.id}
+          title={`${item.name} · ${item.count}`}
+          onClick={() => onStep(item.id)}
+        >
+          <span className="tool-head">
+            {item.lvl ? <span className="tool-lvl">{item.lvl}</span> : null}
+            <span className="tool-nm">{item.name}</span>
+          </span>
+          <span className={`tool-ct${item.lvl ? '' : ' plain'}`}>{item.count}</span>
         </button>
       ))}
     </div>

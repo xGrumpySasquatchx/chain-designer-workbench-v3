@@ -1,6 +1,7 @@
 import { cellValue, variantRows } from './library';
+import { chosenTranslation, cloningPanel, proteinRoleLabel } from './proteins';
 import { backboneIds, buildSlots } from './slots';
-import type { GaalJob, Seed } from './types';
+import type { GaalJob, ProteinDraft, ProteinScheme, Seed } from './types';
 
 export function gaalJobs(
   seed: Seed,
@@ -133,4 +134,84 @@ export function buildListText(
     conflicts.forEach((c) => L.push(`  ${c}`));
   }
   return L.join('\n');
+}
+
+function proteinInsert(draft: ProteinDraft) {
+  const sequence = draft.sequence?.sequence ?? '';
+  const chosen = sequence ? chosenTranslation(draft.id, sequence, draft.translationId) : null;
+  const translation = chosen
+    ? `${chosen.category.name}${chosen.registration ? ` string ${chosen.registration.n}` : ''}`
+    : 'No translation';
+  return {
+    slot: draft.id,
+    domain: proteinRoleLabel(draft.role),
+    part: chosen?.dna || draft.name,
+    translation,
+  };
+}
+
+/** One GaaL job for a co-transfection, or one job per protein. The backbone stays blank until one is registered. */
+export function proteinGaalJobs(drafts: ProteinDraft[], scheme: ProteinScheme): GaalJob[] {
+  const members = cloningPanel(drafts).members;
+  const jobFor = (group: ProteinDraft[]): GaalJob => ({
+    job: 'golden_gate_assembly',
+    library: 'GaaL',
+    backbone: '',
+    enzyme: '',
+    overhang5: '',
+    overhang3: '',
+    selection: '',
+    inserts: group.map((draft) => {
+      const insert = proteinInsert(draft);
+      return { slot: insert.slot, domain: insert.domain, part: insert.part };
+    }),
+    product: group.map((draft) => draft.id).join('+'),
+    annotate: group.flatMap((draft) =>
+      draft.annotations.filter((annotation) => annotation.visible !== false).map((annotation) => annotation.name),
+    ),
+  });
+  if (!members.length) return [];
+  return scheme === 'separate' ? members.map((draft) => jobFor([draft])) : [jobFor(members)];
+}
+
+export function proteinGaalCsv(drafts: ProteinDraft[], scheme: ProteinScheme): string {
+  const rows: string[][] = [
+    ['build', 'slot', 'domain', 'part', 'backbone', 'enzyme', 'overhang_5', 'overhang_3', 'product', 'selection'],
+  ];
+  proteinGaalJobs(drafts, scheme).forEach((job) =>
+    job.inserts.forEach((insert) =>
+      rows.push([
+        job.product.split('+')[0] ?? '',
+        insert.slot,
+        insert.domain,
+        insert.part,
+        job.backbone,
+        job.enzyme,
+        job.overhang5,
+        job.overhang3,
+        job.product,
+        job.selection,
+      ]),
+    ),
+  );
+  return rows
+    .map((row) => row.map((cell) => (/[,"]/.test(String(cell)) ? `"${cell}"` : String(cell))).join(','))
+    .join('\n');
+}
+
+export function proteinBuildList(drafts: ProteinDraft[], schemeNote: string, expressionLines: string[]): string {
+  const panel = cloningPanel(drafts);
+  const lines = ['PROTEIN BUILD LIST', '', 'Construct scheme', `  ${schemeNote}`, `  Ratio  ${panel.ratio || '1'}`, '', 'Proteins'];
+  if (!panel.members.length) lines.push('  None on the cloning panel.');
+  else {
+    panel.members.forEach((draft) => {
+      const insert = proteinInsert(draft);
+      lines.push(`  ${draft.id}  ${draft.name}  ${insert.domain}  ${draft.parts}  ${insert.translation}`);
+    });
+  }
+  lines.push('', 'Backbone', '  No destination backbone is registered.');
+  lines.push('', 'Expression');
+  if (!expressionLines.length) lines.push('  Not defined yet.');
+  else expressionLines.forEach((line) => lines.push(`  ${line}`));
+  return lines.join('\n');
 }

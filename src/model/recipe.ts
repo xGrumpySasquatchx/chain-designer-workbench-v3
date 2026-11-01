@@ -117,3 +117,47 @@ export function recipeLines(doc: RecipeDoc): string[] {
   });
   return lines;
 }
+
+export interface ProteinRecipeMember {
+  id: string;
+  name: string;
+  accession: string;
+  role: string;
+  parts: number;
+  translation: string;
+}
+
+/** The protein panel: each protein, the construct scheme, and the expression strategy. */
+export function proteinRecipeLines(doc: {
+  generatedOn: string;
+  schemeNote: string;
+  ratio: string;
+  members: ProteinRecipeMember[];
+  expressionLines: string[];
+}): string[] {
+  const lines = [
+    'Protein Recipe Report',
+    doc.generatedOn,
+    '',
+    'The proteins taken into cloning, the construct scheme, and the expression strategy.',
+    '',
+    'Construct scheme',
+    `  ${doc.schemeNote}`,
+    `  Ratio  ${doc.ratio || '1'}`,
+    '',
+    'Proteins',
+  ];
+  if (!doc.members.length) lines.push('  None on the cloning panel.');
+  else {
+    doc.members.forEach((member) =>
+      lines.push(
+        `  ${member.id}  ${member.name}  ${member.accession}  ${member.role}  ${member.parts} part${member.parts === 1 ? '' : 's'}  ${member.translation}`,
+      ),
+    );
+  }
+  lines.push('', 'Backbone', '  No destination backbone is registered.', '', 'Expression');
+  if (!doc.expressionLines.length) lines.push('  Not defined yet.');
+  else doc.expressionLines.forEach((line) => lines.push(`  ${line}`));
+  lines.push('');
+  return lines;
+}

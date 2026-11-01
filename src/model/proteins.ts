@@ -1,5 +1,8 @@
 import { characterizedTranslations, preferredTranslation } from './sequences';
+import { registerExpression } from './expression';
 import type {
+  ExpressionPlan,
+  ExpressionRegistration,
   ProteinAnnotation,
   ProteinDraft,
   ProteinFamily,
@@ -325,6 +328,21 @@ export function cloningPanel(drafts: ProteinDraft[]): { members: ProteinDraft[];
   const members = drafts.filter((draft) => draft.onPanel && draft.sequence);
   const ratio = members.map((draft) => String(draft.parts)).join(':');
   return { members, ratio };
+}
+
+/** Register the panel proteins with the current expression choice. Returns null when that choice is already stored. */
+export function proteinRegister(
+  registrations: ExpressionRegistration[],
+  expression: ExpressionPlan,
+  drafts: ProteinDraft[],
+): ExpressionRegistration | null {
+  const panel = cloningPanel(drafts);
+  return registerExpression(
+    registrations,
+    expression,
+    panel.members.map((draft) => draft.id),
+    panel.members.map((draft) => draft.name),
+  );
 }
 
 export type ProteinSearchBy = 'name' | 'sequence';

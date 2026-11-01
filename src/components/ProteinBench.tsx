@@ -1,16 +1,6 @@
 import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import {
-  CODON_METHODS,
-  HOSTS,
-  SCENARIOS,
-  TARGET_CLASSES,
-  codonTableName,
-  hostById,
-  withHost,
-} from '../model/expression';
-import {
   PROTEIN_FAMILIES,
-  PROTEIN_ROLES,
   PROTEIN_SCHEMES,
   PROTEIN_USES,
   PROTEINS,
@@ -19,25 +9,15 @@ import {
   cloningPanel,
   familyLabel,
   proteinById,
-  proteinRoleLabel,
   proteinSearchText,
   proteinUseLabel,
   searchInternalProteins,
   searchUniProt,
-  chosenTranslation,
   type ProteinLookupHit,
   type ProteinRecord,
   type ProteinSearchBy,
 } from '../model/proteins';
-import type {
-  ExpressionPlan,
-  HostId,
-  ProteinDraft,
-  ProteinFamily,
-  ProteinScheme,
-  ProteinSequenceRecord,
-  ProteinUse,
-} from '../model/types';
+import type { ProteinDraft, ProteinFamily, ProteinScheme, ProteinSequenceRecord, ProteinUse } from '../model/types';
 import { ProteinSequenceViewer } from './ProteinSequenceViewer';
 
 export function ProteinBench({
@@ -52,10 +32,8 @@ export function ProteinBench({
   onOpen,
   onDelete,
   onChange,
-  expression,
   scheme,
-  onExpression,
-  onScheme,
+  viewer,
 }: {
   drafts: ProteinDraft[];
   activeId: string | null;
@@ -68,10 +46,8 @@ export function ProteinBench({
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onChange: (draft: ProteinDraft) => void;
-  expression: ExpressionPlan;
   scheme: ProteinScheme;
-  onExpression: (plan: ExpressionPlan) => void;
-  onScheme: (scheme: ProteinScheme) => void;
+  viewer: ReactNode;
 }) {
   const [query, setQuery] = useState('');
   const registered = proteinById(activeId ?? '');
@@ -86,7 +62,7 @@ export function ProteinBench({
         <span className="stat-grow" />
         <span>Open a registered receptor or scaffold, or start a new protein</span>
       </div>
-      <div className="wrap protein-wrap" style={wrapStyle}>
+      <div className="wrap" style={wrapStyle}>
         <ProteinRail
           drafts={drafts}
           activeId={activeId}
@@ -125,17 +101,10 @@ export function ProteinBench({
                 </p>
               </div>
             )}
-            <ProteinCloning
-              drafts={drafts}
-              expression={expression}
-              scheme={scheme}
-              onOpen={onOpen}
-              onChange={onChange}
-              onExpression={onExpression}
-              onScheme={onScheme}
-            />
+            <ProteinPanelNote drafts={drafts} scheme={scheme} />
           </div>
         </main>
+        {viewer}
       </div>
     </>
   );
@@ -408,152 +377,15 @@ function DraftProtein({
   );
 }
 
-function ProteinCloning({
-  drafts,
-  expression,
-  scheme,
-  onOpen,
-  onChange,
-  onExpression,
-  onScheme,
-}: {
-  drafts: ProteinDraft[];
-  expression: ExpressionPlan;
-  scheme: ProteinScheme;
-  onOpen: (id: string) => void;
-  onChange: (draft: ProteinDraft) => void;
-  onExpression: (plan: ExpressionPlan) => void;
-  onScheme: (scheme: ProteinScheme) => void;
-}) {
+function ProteinPanelNote({ drafts, scheme }: { drafts: ProteinDraft[]; scheme: ProteinScheme }) {
   const panel = cloningPanel(drafts);
   if (!panel.members.length) return null;
-  const host = expression.host ? hostById(expression.host) : null;
   const schemeNote = PROTEIN_SCHEMES.find((item) => item.id === scheme)?.note ?? '';
   return (
-    <section className="gsv-panel" aria-label="Cloning panel">
-      <h3>Cloning panel</h3>
-      <p className="sm">
-        {panel.members.length} protein{panel.members.length === 1 ? '' : 's'} · {panel.ratio || '1'}. {schemeNote}
-      </p>
-      <div className="protein-lookup-modes">
-        {PROTEIN_SCHEMES.map((item) => (
-          <button key={item.id} type="button" className="btn sm" aria-pressed={scheme === item.id} onClick={() => onScheme(item.id)}>
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <ul className="protein-hits">
-        {panel.members.map((draft) => {
-          const chosen = draft.sequence ? chosenTranslation(draft.id, draft.sequence.sequence, draft.translationId) : null;
-          return (
-            <li key={draft.id} className="gsv-ann-line">
-              <button type="button" className="req-row" onClick={() => onOpen(draft.id)}>
-                <span className="nm">{draft.name}</span>
-                <span className="sm">
-                  {draft.id}
-                  {draft.sequence?.accession ? ` · ${draft.sequence.accession}` : ''} · {proteinRoleLabel(draft.role)} ·{' '}
-                  {draft.parts} part{draft.parts === 1 ? '' : 's'}
-                  {chosen ? ` · ${chosen.category.name}${chosen.registration ? ` · string ${chosen.registration.n}` : ''}` : ''}
-                </span>
-              </button>
-              <label className="protein-reviewed">
-                Parts
-                <input
-                  className="search"
-                  inputMode="decimal"
-                  aria-label={`Parts for ${draft.name}`}
-                  value={String(draft.parts)}
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    if (event.target.value.trim() && Number.isFinite(next) && next >= 0) onChange({ ...draft, parts: next });
-                  }}
-                />
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="protein-fields">
-        <label>
-          Target class
-          <select
-            value={expression.targetClass ?? ''}
-            onChange={(event) =>
-              onExpression({ ...expression, targetClass: (event.target.value || null) as ExpressionPlan['targetClass'] })
-            }
-          >
-            <option value="">Choose a target class</option>
-            {TARGET_CLASSES.map((target) => (
-              <option key={target.id} value={target.id}>
-                {target.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Expression system
-          <select
-            value={expression.host ?? ''}
-            onChange={(event) => onExpression(event.target.value ? withHost(expression, event.target.value as HostId) : { ...expression, host: null, codonTable: null })}
-          >
-            <option value="">Choose a host</option>
-            {HOSTS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {host ? (
-          <label>
-            Codon table
-            <select
-              value={expression.codonTable ?? host.tables[0].id}
-              onChange={(event) => onExpression({ ...expression, codonTable: event.target.value })}
-            >
-              {host.tables.map((table) => (
-                <option key={table.id} value={table.id}>
-                  {table.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        <label>
-          Codon strategy
-          <select
-            value={expression.codon ?? ''}
-            onChange={(event) => onExpression({ ...expression, codon: (event.target.value || null) as ExpressionPlan['codon'] })}
-          >
-            <option value="">Choose a codon strategy</option>
-            {CODON_METHODS.map((method) => (
-              <option key={method.id} value={method.id}>
-                {method.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Production scenario
-          <select
-            value={expression.mode ?? ''}
-            onChange={(event) => onExpression({ ...expression, mode: (event.target.value || null) as ExpressionPlan['mode'] })}
-          >
-            <option value="">Choose transient or stable</option>
-            {SCENARIOS.map((scenario) => (
-              <option key={scenario.id} value={scenario.id}>
-                {scenario.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <p className="sm">
-        {expression.host ? hostById(expression.host).name : 'Host not chosen'}
-        {expression.host && expression.codonTable ? ` · ${codonTableName(expression.host, expression.codonTable)}` : ''}.{' '}
-        {panel.members.map((draft) => PROTEIN_ROLES.find((role) => role.id === draft.role)?.label ?? 'Unassigned').join(', ')}.
-      </p>
-    </section>
+    <p className="sm">
+      {panel.members.length} protein{panel.members.length === 1 ? '' : 's'} on the construct tab · {panel.ratio || '1'}.{' '}
+      {schemeNote}
+    </p>
   );
 }
 
