@@ -131,12 +131,13 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .gsv,.gsv-panel{display:flex; flex-direction:column; gap:8px; margin:16px 0}
 .gsv-stage{display:flex; gap:8px; align-items:flex-start; min-width:0}
 .gsv-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:8px}
-.gsv-types{flex:0 0 248px; max-height:520px; overflow:auto; border:1px solid var(--rule); border-radius:4px; background:var(--card); padding:8px; display:flex; flex-direction:column; gap:8px}
+.gsv-types{flex:0 0 320px; max-height:560px; overflow:auto; border:1px solid var(--rule); border-radius:4px; background:var(--card); padding:8px; display:flex; flex-direction:column; gap:8px}
 .gsv-types .search{width:100%}
 .gsv-type-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
 .gsv-type-row{display:flex; align-items:center; gap:4px}
 .gsv-type-row .seq-check{flex:1 1 auto; min-width:0}
-.gsv-type-row .nm{overflow:hidden; text-overflow:ellipsis}
+.gsv-type-name{display:flex; flex-direction:column; min-width:0; line-height:1.25}
+.gsv-type-row .nm{white-space:normal}
 .gsv-type-swatch{width:14px; height:10px; border-radius:2px; flex:none}
 .gsv-ann-line.is-type-off{opacity:.45}
 .gsv-ann-bar.is-dim{opacity:.28}

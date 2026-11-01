@@ -11,6 +11,7 @@ import {
   proteinById,
   proteinSearchText,
   proteinUseLabel,
+  fetchUniProtEntry,
   searchInternalProteins,
   searchUniProt,
   type ProteinLookupHit,
@@ -371,8 +372,8 @@ function DraftProtein({
         </p>
       ) : null}
       <p className="sm">Chosen area: {proteinUseLabel(draft.use)}.</p>
-      {draft.sequence ? <BroughtSequence sequence={draft.sequence} /> : null}
       {draft.sequence ? <ProteinSequenceViewer draft={draft} onChange={onChange} /> : null}
+      {draft.sequence ? <BroughtSequence sequence={draft.sequence} /> : null}
     </>
   );
 }
@@ -405,12 +406,14 @@ function ProteinLookup({
   const [hits, setHits] = useState<ProteinLookupHit[]>([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState('');
 
   useEffect(() => {
     setHits([]);
     setMessage('');
     setText('');
     setBusy(false);
+    setPicking('');
   }, [draft.id]);
 
   function chooseSource(next: 'internal' | 'uniprot') {
@@ -513,9 +516,27 @@ function ProteinLookup({
         <ul className="protein-hits">
           {hits.map((hit) => (
             <li key={hit.key}>
-              <button type="button" className="req-row" onClick={() => onChange(applyProteinHit(draft, hit))}>
+              <button
+                type="button"
+                className="req-row"
+                disabled={picking === hit.key}
+                onClick={() => {
+                  void (async () => {
+                    setPicking(hit.key);
+                    try {
+                      const sequence =
+                        hit.origin === 'uniprot' && hit.sequence
+                          ? (await fetchUniProtEntry(hit.sequence.accession)) ?? hit.sequence
+                          : hit.sequence;
+                      onChange(applyProteinHit(draft, { ...hit, sequence }));
+                    } finally {
+                      setPicking('');
+                    }
+                  })();
+                }}
+              >
                 <span className="nm">{hit.title}</span>
-                <span className="sm">{hit.detail}</span>
+                <span className="sm">{picking === hit.key ? 'Bringing in every feature…' : hit.detail}</span>
               </button>
             </li>
           ))}

@@ -30,6 +30,7 @@ import {
   annotationLanes,
   annotationSpan,
   annotationTypeCounts,
+  annotationTypeLabel,
   annotationsFromSequence,
   nextAnnotationStart,
   setAnnotationTypeShown,
@@ -1238,6 +1239,35 @@ check(
     nextAnnotationStart(typeSample, 'Helix', 40, 1) === 10 &&
     nextAnnotationStart(typeSample, 'Helix', 10, -1) === 40 &&
     nextAnnotationStart(typeSample, 'Natural variant', 1, 1) === null,
+);
+
+const fizFeatures = parseUniProtSearch({
+  results: [
+    {
+      ...insulinEntry,
+      primaryAccession: 'Q9WTJ4',
+      sequence: { value: `${'M'.repeat(500)}`, length: 500 },
+      features: [
+        { type: 'Compositional bias', description: 'Pro residues', location: { start: { value: 9 }, end: { value: 19 } } },
+        { type: 'Sequence conflict', description: 'in Ref. 2', alternativeSequence: { originalSequence: 'G', alternativeSequences: ['D'] }, location: { start: { value: '404' }, end: { value: '404' } } },
+        { type: 'Modified residue', description: 'N-acetylmethionine', location: { start: { value: 1 }, end: { value: 1 } } },
+        { type: 'Region', description: 'Disordered', location: { start: { value: 1 }, end: { value: 24 } } },
+        { type: 'Zinc finger', description: 'C2H2-type 1', location: { start: { value: 51 }, end: { value: 29 } } },
+      ],
+    },
+  ],
+})[0];
+const fizAnnotations = annotationsFromSequence(fizFeatures);
+const hiddenBias = setAnnotationTypeShown([], 'Compositional bias', false);
+check(
+  'Q9WTJ4 feature codes stay on the sequence and can be hidden by type',
+  ['COMPBIAS', 'CONFLICT', 'MOD_RES', 'REGION', 'ZN_FING'].every((code) =>
+    fizAnnotations.some((annotation) => annotationTypeLabel(annotation.type).startsWith(code)),
+  ) &&
+    fizAnnotations.find((annotation) => annotation.type === 'Sequence conflict')?.name === 'G→D' &&
+    fizAnnotations.find((annotation) => annotation.type === 'Zinc finger')?.start === 29 &&
+    visibleAnnotations(fizAnnotations, hiddenBias).every((annotation) => annotation.type !== 'Compositional bias') &&
+    fizAnnotations.some((annotation) => annotation.type === 'Compositional bias'),
 );
 
 const panelSequence = {

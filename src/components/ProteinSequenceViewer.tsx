@@ -5,6 +5,7 @@ import {
   annotationLanes,
   annotationSpan,
   annotationTypeCounts,
+  annotationTypeLabel,
   annotationsFromSequence,
   chosenTranslation,
   editAminoAcids,
@@ -448,12 +449,14 @@ function AnnotationTypes({
               <input
                 type="checkbox"
                 checked={!hidden.has(item.type)}
-                aria-label={`Show ${item.type}`}
+                aria-label={`Show ${annotationTypeLabel(item.type)}`}
                 onChange={(event) => onToggleType(item.type, event.target.checked)}
               />
               <span className={`gsv-type-swatch ${annColor(item.type)}`} aria-hidden="true" />
-              <span className="nm">{item.type}</span>
-              <span className="n">{item.count}</span>
+              <span className="gsv-type-name">
+                <span className="nm">{annotationTypeLabel(item.type)}</span>
+                <span className="n">{item.count}</span>
+              </span>
             </label>
             <button type="button" className="btn sm" aria-label={`Previous ${item.type}`} onClick={() => onJump(item.type, -1)}>
               Prev
@@ -610,7 +613,9 @@ function AnnotationEditor({
               />
               <span>
                 <span className="nm">
-                  {annotation.name === annotation.type ? annotation.type : `${annotation.type} · ${annotation.name}`}
+                  {annotation.name === annotation.type
+                    ? annotationTypeLabel(annotation.type)
+                    : `${annotationTypeLabel(annotation.type)} · ${annotation.name}`}
                 </span>
                 <span className="sm">
                   {annotation.start}–{annotation.end}
@@ -628,11 +633,13 @@ function AnnotationEditor({
         <label>
           Type
           <select value={draftAnn.type} onChange={(event) => onDraftAnn({ ...draftAnn, type: event.target.value })}>
-            {ANN_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
+            {[...new Set([...annotations.map((annotation) => annotation.type), ...ANN_TYPES])]
+              .sort((a, b) => annotationTypeLabel(a).localeCompare(annotationTypeLabel(b)))
+              .map((type) => (
+                <option key={type} value={type}>
+                  {annotationTypeLabel(type)}
+                </option>
+              ))}
           </select>
         </label>
         <label>

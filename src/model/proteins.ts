@@ -245,6 +245,52 @@ export function sequenceRows(length: number, perLine: number): { start: number; 
   return rows;
 }
 
+/** UniProt feature-table code for each feature name the REST entry uses. */
+const UNIPROT_TYPE_CODES: Record<string, string> = {
+  'Initiator methionine': 'INIT_MET',
+  Signal: 'SIGNAL',
+  'Transit peptide': 'TRANSIT',
+  Propeptide: 'PROPEP',
+  Chain: 'CHAIN',
+  Peptide: 'PEPTIDE',
+  'Topological domain': 'TOPO_DOM',
+  Transmembrane: 'TRANSMEM',
+  Intramembrane: 'INTRAMEM',
+  Domain: 'DOMAIN',
+  Repeat: 'REPEAT',
+  'Zinc finger': 'ZN_FING',
+  'DNA binding': 'DNA_BIND',
+  Region: 'REGION',
+  'Coiled coil': 'COILED',
+  Motif: 'MOTIF',
+  'Compositional bias': 'COMPBIAS',
+  'Active site': 'ACT_SITE',
+  'Binding site': 'BINDING',
+  Site: 'SITE',
+  'Non-standard residue': 'NON_STD',
+  'Modified residue': 'MOD_RES',
+  Lipidation: 'LIPID',
+  Glycosylation: 'CARBOHYD',
+  'Disulfide bond': 'DISULFID',
+  'Cross-link': 'CROSSLNK',
+  'Alternative sequence': 'VAR_SEQ',
+  'Natural variant': 'VARIANT',
+  Mutagenesis: 'MUTAGEN',
+  'Sequence uncertainty': 'UNSURE',
+  'Sequence conflict': 'CONFLICT',
+  'Non-adjacent residues': 'NON_CONS',
+  'Non-terminal residue': 'NON_TER',
+  Helix: 'HELIX',
+  'Beta strand': 'STRAND',
+  Turn: 'TURN',
+};
+
+/** Feature-table code plus the UniProt name, so COMPBIAS and Compositional bias are the same type. */
+export function annotationTypeLabel(type: string): string {
+  const code = UNIPROT_TYPE_CODES[type];
+  return code ? `${code} · ${type}` : type;
+}
+
 /** How many annotations share each type, in type name order. */
 export function annotationTypeCounts(annotations: ProteinAnnotation[]): { type: string; count: number }[] {
   const counts = new Map<string, number>();
@@ -634,6 +680,20 @@ export async function searchUniProt(by: ProteinSearchBy, query: string, reviewed
   return uniProtHits(parseUniProtSearch(await response.json()));
 }
 
+/** The full UniProt entry, including every feature type on that accession. */
+export async function fetchUniProtEntry(accession: string): Promise<ProteinSequenceRecord | null> {
+  const id = accession.trim();
+  if (!id) return null;
+  let response: Response;
+  try {
+    response = await fetch(`https://rest.uniprot.org/uniprotkb/${encodeURIComponent(id)}.json`);
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  return readUniProtEntry(await response.json());
+}
+
 function readUniProtEntry(entry: unknown): ProteinSequenceRecord | null {
   if (!entry || typeof entry !== 'object') return null;
   const row = entry as {
@@ -684,6 +744,12 @@ function readUniProtEntry(entry: unknown): ProteinSequenceRecord | null {
   };
 }
 
+function locationNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
 function readUniProtFeatures(row: { features?: unknown }, length: number): ProteinFeature[] {
   if (!Array.isArray(row.features) || length < 1) return [];
   return row.features.flatMap((value) => {
@@ -696,12 +762,16 @@ function readUniProtFeatures(row: { features?: unknown }, length: number): Prote
       location?: { start?: { value?: unknown }; end?: { value?: unknown }; position?: { value?: unknown } };
     };
     const type = typeof feature.type === 'string' ? feature.type : '';
-    const position = feature.location?.position?.value;
-    const start = typeof feature.location?.start?.value === 'number' ? feature.location.start.value : position;
-    const endValue = feature.location?.end?.value;
-    const end = typeof endValue === 'number' ? endValue : start;
-    if (!type || typeof start !== 'number' || typeof end !== 'number') return [];
-    if (start < 1 || end < start || start > length) return [];
+    const position = locationNumber(feature.location?.position?.value);
+    const startValue = locationNumber(feature.location?.start?.value);
+    const endValue = locationNumber(feature.location?.end?.value);
+    let start = startValue ?? position;
+    let end = endValue ?? start;
+    if (!type || start == null || end == null) return [];
+    if (end < start) [start, end] = [end, start];
+    if (end < 1 || start > length) return [];
+    start = Math.max(1, start);
+    end = Math.min(length, end);
     const description = typeof feature.description === 'string' ? feature.description.trim() : '';
     const ligand = typeof feature.ligand?.name === 'string' ? feature.ligand.name : '';
     const original =
