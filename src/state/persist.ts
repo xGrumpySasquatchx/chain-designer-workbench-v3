@@ -1,4 +1,5 @@
 import { EMPTY_EXPRESSION } from '../model/expression';
+import { keptScreens } from '../model/screens';
 import { emptySel } from '../model/selection';
 import type {
   CodonMethod,
@@ -56,6 +57,8 @@ export function defaultState(): State {
     chainRatios: {},
     constructGroups: {},
     constructCount: null,
+    constructScreens: [],
+    proteinConstructScreens: [],
     sequencePicks: {},
     proteinDrafts: [],
     activeProteinId: null,
@@ -111,6 +114,8 @@ export function loadState(): State {
     if (typeof r.constructCount === 'number' && Number.isInteger(r.constructCount) && r.constructCount >= 1) {
       base.constructCount = r.constructCount;
     }
+    base.constructScreens = keptScreens(r.constructScreens);
+    base.proteinConstructScreens = keptScreens(r.proteinConstructScreens);
     if (isGroupMap(r.sequencePicks)) base.sequencePicks = r.sequencePicks;
     if (Array.isArray(r.proteinDrafts)) {
       base.proteinDrafts = r.proteinDrafts.flatMap((value) => {

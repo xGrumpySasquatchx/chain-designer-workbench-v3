@@ -138,6 +138,7 @@ export function BuildPanel({
   canRegister,
   registered,
   registerTitle,
+  showRegister,
   onRegister,
   ratioText,
   combinationText,
@@ -168,6 +169,7 @@ export function BuildPanel({
   canRegister: boolean;
   registered: boolean;
   registerTitle: string;
+  showRegister: boolean;
   onRegister: () => void;
   ratioText?: string;
   combinationText?: string;
@@ -287,19 +289,21 @@ export function BuildPanel({
           {hasWork ? (
             <div className="sec" style={{ borderBottom: 0 }}>
               <div className="row">
-                <button
-                  className="btn primary"
-                  type="button"
-                  disabled={!canRegister}
-                  title={registerTitle}
-                  onClick={() => {
-                    onRegister();
-                    setCopied('Register constructs');
-                    window.setTimeout(() => setCopied(''), 1600);
-                  }}
-                >
-                  {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
-                </button>
+                {showRegister ? (
+                  <button
+                    className="btn primary"
+                    type="button"
+                    disabled={!canRegister}
+                    title={registerTitle}
+                    onClick={() => {
+                      onRegister();
+                      setCopied('Register constructs');
+                      window.setTimeout(() => setCopied(''), 1600);
+                    }}
+                  >
+                    {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
+                  </button>
+                ) : null}
                 <button
                   className="btn"
                   type="button"
@@ -381,19 +385,21 @@ export function BuildPanel({
             >
               {copied === 'Copy as CSV' ? 'Copied' : 'Copy as CSV'}
             </button>
-            <button
-              className="btn sm primary"
-              type="button"
-              disabled={!canRegister}
-              title={registerTitle}
-              onClick={() => {
-                onRegister();
-                setCopied('Register constructs');
-                window.setTimeout(() => setCopied(''), 1600);
-              }}
-            >
-              {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
-            </button>
+            {showRegister ? (
+              <button
+                className="btn sm primary"
+                type="button"
+                disabled={!canRegister}
+                title={registerTitle}
+                onClick={() => {
+                  onRegister();
+                  setCopied('Register constructs');
+                  window.setTimeout(() => setCopied(''), 1600);
+                }}
+              >
+                {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
+              </button>
+            ) : null}
           </div>
           <p style={{ margin: '7px 0 0', fontSize: 11.5, color: 'var(--ink-3)' }}>
             Emits the assembly spec. Point it at your Geneious Prime library to run the builds.

@@ -43,6 +43,7 @@ export function ProteinStage({
   step,
   expression,
   scheme,
+  screens,
   registrations,
   expandedLeft,
   expandedRight,
@@ -59,6 +60,7 @@ export function ProteinStage({
   onChange,
   onExpression,
   onScheme,
+  onScreens,
   onRegister,
 }: {
   drafts: ProteinDraft[];
@@ -66,6 +68,7 @@ export function ProteinStage({
   step: ProteinStep;
   expression: ExpressionPlan;
   scheme: ProteinScheme;
+  screens: string[];
   registrations: ExpressionRegistration[];
   expandedLeft: boolean;
   expandedRight: boolean;
@@ -82,6 +85,7 @@ export function ProteinStage({
   onChange: (draft: ProteinDraft) => void;
   onExpression: (plan: ExpressionPlan) => void;
   onScheme: (scheme: ProteinScheme) => void;
+  onScreens: (id: string, on: boolean) => void;
   onRegister: () => void;
 }) {
   const panel = cloningPanel(drafts);
@@ -105,6 +109,7 @@ export function ProteinStage({
       canRegister={canRegister}
       registered={registered}
       registerTitle={registerTitle}
+      showRegister={step === 'con' && panel.members.length > 0}
       onRegister={onRegister}
       onPublish={() => {
         const schemeNote = PROTEIN_SCHEMES.find((item) => item.id === scheme)?.note ?? '';
@@ -154,6 +159,8 @@ export function ProteinStage({
         onOpen={onOpen}
         onChange={onChange}
         onScheme={onScheme}
+        screens={screens}
+        onScreens={onScreens}
         handoff={handoff}
       />
     );

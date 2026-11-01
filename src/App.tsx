@@ -9,6 +9,7 @@ import { ChainRatios } from './components/ChainRatios';
 import { ConstructCombinations } from './components/ConstructCombinations';
 import { ConstructCount } from './components/ConstructCount';
 import { ConstructLibrary } from './components/ConstructLibrary';
+import { ConstructScreens } from './components/ConstructScreens';
 import { ExpressionBench, ExpressionRail } from './components/ExpressionBench';
 import { FacetRail, type FacetDef } from './components/FacetRail';
 import { InventoryCell } from './components/InventoryCell';
@@ -19,6 +20,7 @@ import { PanelPick, RequestBench, RequestRail } from './components/RequestBench'
 import { KindSwitch } from './components/ProductKind';
 import { ProteinStage } from './components/ProteinStage';
 import { cloningPanel, newProteinDraft, proteinById, proteinRegister } from './model/proteins';
+import { screenSummary, toggleScreen } from './model/screens';
 import { PreferredSequences } from './components/PreferredSequences';
 import { VariableRegions } from './components/VariableRegions';
 import { VLibraryRail } from './components/VLibraryRail';
@@ -564,7 +566,7 @@ export default function App() {
   const schemes = constructSchemes(inferred.perMolecule);
   const expressWith = schemes.some((scheme) => scheme.count === state.constructCount)
     ? (state.constructCount ?? 0)
-    : (schemes[schemes.length - 1]?.count ?? 0);
+    : 0;
   const expressScheme = schemes.find((scheme) => scheme.count === expressWith);
   const produced = expressScheme ? constructsProduced(inferred.chains, expressScheme, moleculeCount) : 0;
   const inferredMutations = panelMutations
@@ -819,6 +821,7 @@ export default function App() {
           step={state.proteinStep}
           expression={state.proteinExpression}
           scheme={state.proteinScheme}
+          screens={state.proteinConstructScreens}
           registrations={state.proteinExpressionRegistrations}
           expandedLeft={sides.layout.leftOpen}
           expandedRight={sides.layout.rightOpen}
@@ -869,6 +872,12 @@ export default function App() {
           }
           onExpression={(plan) => setState((current) => ({ ...current, proteinExpression: plan }))}
           onScheme={(scheme) => setState((current) => ({ ...current, proteinScheme: scheme }))}
+          onScreens={(id, on) =>
+            setState((current) => ({
+              ...current,
+              proteinConstructScreens: toggleScreen(current.proteinConstructScreens, id, on),
+            }))
+          }
           onRegister={() =>
             setState((current) => {
               const record = proteinRegister(
@@ -922,11 +931,16 @@ export default function App() {
                       ]
                         .filter(Boolean)
                         .join(' · ')
-                    : expressWith
-                      ? `Express each molecule with ${expressWith} construct${expressWith === 1 ? '' : 's'}${
-                          moleculeCount > 1 ? ` · ${produced} in this panel` : ''
-                        }`
-                      : `${model.buildV.size} in build, ${model.reachV.size} available`}
+                    : [
+                        expressWith
+                          ? `Express each molecule with ${expressWith} construct${expressWith === 1 ? '' : 's'}${
+                              moleculeCount > 1 ? ` · ${produced} in this panel` : ''
+                            }`
+                          : 'Choose how many constructs to express with',
+                        screenSummary(state.constructScreens),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
         </span>
         <span className="stat-grow" />
         <span>EU for Fc and CH1 · Kabat / IMGT for V domains · selections stay in this browser</span>
@@ -1045,18 +1059,26 @@ export default function App() {
                   onOpen={openPanel}
                 />
               ) : grain === 'con' ? (
-                <ConstructLibrary
-                  vectors={seed.vectors}
-                  chains={seed.chains}
-                  buildIds={model.buildV}
-                  recommendedIds={model.claimV}
-                  onPick={(id) =>
-                    setState((s) => ({
-                      ...s,
-                      sel: { ...s.sel, con: chooseConstruct(s.sel.con, seed.chains, id, model.buildV) },
-                    }))
-                  }
-                />
+                <>
+                  <ConstructLibrary
+                    vectors={seed.vectors}
+                    chains={seed.chains}
+                    buildIds={model.buildV}
+                    recommendedIds={model.claimV}
+                    onPick={(id) =>
+                      setState((s) => ({
+                        ...s,
+                        sel: { ...s.sel, con: chooseConstruct(s.sel.con, seed.chains, id, model.buildV) },
+                      }))
+                    }
+                  />
+                  <ConstructScreens
+                    selected={state.constructScreens}
+                    onToggle={(id, on) =>
+                      setState((s) => ({ ...s, constructScreens: toggleScreen(s.constructScreens, id, on) }))
+                    }
+                  />
+                </>
               ) : null
             }
             expanded={sides.layout.leftOpen}
@@ -1311,6 +1333,7 @@ export default function App() {
           canRegister={canRegister}
           registered={expressionRegistered}
           registerTitle={registerTitle}
+          showRegister={grain === 'con' && expressWith > 0 && produced > 0}
           ratioText={ratioSummary(ratioPlan)}
           combinationText={combinationText(combinations)}
           ratioByVector={ratioByVector}

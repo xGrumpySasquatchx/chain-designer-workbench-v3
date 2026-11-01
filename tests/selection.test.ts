@@ -21,6 +21,7 @@ import { textPdf } from '../src/model/pdf';
 import { proteinGaalCsv, proteinGaalJobs } from '../src/model/gaal';
 import { proteinRecipeLines, recipeLines } from '../src/model/recipe';
 import { planChainRatios } from '../src/model/ratio';
+import { keptScreens, screenById, screenSummary, toggleScreen } from '../src/model/screens';
 import {
   PROTEIN_FAMILIES,
   PROTEIN_USES,
@@ -1232,6 +1233,20 @@ check(
     proteinRecipe[0] === 'Protein Recipe Report' &&
     proteinRecipe.some((line) => line.includes('No destination backbone is registered')) &&
     proteinRecipe.some((line) => line.includes('Mammalian')),
+);
+
+const chosenScreens = toggleScreen(toggleScreen([], 'lacz', true), 'colony-pcr', true);
+check(
+  'construct screens keep color, fluorescence, and DNA methods, and drop an unknown id',
+  screenById('lacz')?.group === 'color' &&
+    screenById('lacz')?.selects === false &&
+    screenById('gfp-fusion')?.group === 'fluorescence' &&
+    screenById('bla')?.selects === true &&
+    screenById('colony-pcr')?.selects === false &&
+    keptScreens(['lacz', 'nope', 'bla']).join(',') === 'lacz,bla' &&
+    chosenScreens.join(',') === 'lacz,colony-pcr' &&
+    screenSummary(chosenScreens).includes('Blue/white') &&
+    screenSummary(chosenScreens).includes('Colony PCR'),
 );
 
 console.log('\nAll selection checks passed.');

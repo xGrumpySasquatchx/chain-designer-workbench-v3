@@ -372,6 +372,10 @@ export interface State {
   constructGroups: Record<string, string>;
   /** How many constructs express one molecule. Null until the scientist picks a scheme. */
   constructCount: number | null;
+  /** Color, fluorescence, and DNA methods designated for the antibody constructs. */
+  constructScreens: string[];
+  /** Color, fluorescence, and DNA methods designated for the protein constructs. */
+  proteinConstructScreens: string[];
   /** Chain id to the nucleotide translation chosen for that chain. */
   sequencePicks: Record<string, string>;
   proteinDrafts: ProteinDraft[];

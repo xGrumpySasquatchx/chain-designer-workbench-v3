@@ -244,6 +244,10 @@ ANTIBODY: list[tuple[str, str]] = [
     ("li", "A plasmid that carries more than one chain needs a multi-gene backbone. Plasmids in inventory carry one chain."),
     ("li", "A chain that changes with the well, such as a variable region, is built once per well. A chain that is the same in every well is built once for the panel."),
     ("li", "When the panel has more than one well, each button shows how many constructs that choice produces across the panel."),
+    (
+        "p",
+        "The left column also designates how those constructs are kept and checked. Color covers chromogenic screening, such as blue/white lacZα, GUS, XylE, chromoproteins, the carotenoid pathway, and yeast ade2 red/white. Fluorescence covers a GFP, sfGFP, or mCherry fusion, split GFP, FACS, FlAsH/ReAsH, and an IRES or 2A-linked fluorescent protein. DNA selection covers the genetic markers (bacterial antibiotics, mammalian antibiotics, auxotrophy, DHFR, glutamine synthetase, counterselection, and antibiotic-free systems) and the checks that confirm the plasmid (colony PCR, a diagnostic digest, Sanger sequencing, and full-plasmid sequencing). Color and fluorescence screen colonies that all grow. A marker selects. The DNA checks confirm and do not select. The catalog facet named Selection marker still filters plasmids by the antibiotic already on them.",
+    ),
     ("h1", "Expression"),
     (
         "p",
@@ -281,7 +285,7 @@ ANTIBODY: list[tuple[str, str]] = [
         "p",
         "Info shows the current selection and anything the panel asks you to check. When there is work to hand off, three actions sit at the bottom.",
     ),
-    ("li", "Register constructs stores this panel with the expression choice. The button stays off until a target class, a host, a codon table, a codon method, and transient or stable are all set, and until a construct is included. Hover the button to see what is still missing. Registering the same constructs with the same choice again leaves the button on Registered."),
+    ("li", "Register constructs appears on the Construct tab after you choose how many constructs to express with and that choice produces constructs. It stays off Request, Chain, Variable regions, Mutations, and Expression. On Construct it stays disabled until a target class, a host, a codon table, a codon method, and transient or stable are all set. Hover the button to see what is still missing. Registering the same constructs with the same choice again leaves the button on Registered."),
     ("li", "Copy build list puts a plain-text summary on the clipboard."),
     ("li", "Publish protein Report downloads a PDF recipe for the panel. The file name starts with protein-recipe and the panel id."),
     (
@@ -308,7 +312,7 @@ ANTIBODY: list[tuple[str, str]] = [
     ("li", "Press Antibody."),
     ("li", "Open a registered panel, or press New and design the molecule."),
     ("li", "On Chain, check the nucleotide string for each region."),
-    ("li", "On Construct, choose how many constructs to express with."),
+    ("li", "On Construct, choose how many constructs to express with, then register them."),
     ("li", "On Expression, set the class, the host, transient or stable, and the codon method."),
     ("li", "In the Viewer, publish the recipe or copy the GaaL job."),
 ]
@@ -402,7 +406,7 @@ PROTEIN: list[tuple[str, str]] = [
     ("h1", "Construct"),
     (
         "p",
-        "Open 1 Construct. The left column lists the proteins on the panel. Select one to return to the Protein tab on that draft. The center is Level 1.",
+        "Open 1 Construct. The left column lists the proteins on the panel, then the same Color, Fluorescence, and DNA selection choices used for an antibody construct. Select a protein to return to the Protein tab on that draft. The center is Level 1.",
     ),
     ("li", "One co-transfection puts every protein in one transfection mix. Parts are each protein’s share, and the ratio joins those parts, such as 1:2."),
     ("li", "One plasmid per protein gives each protein its own transfection. Parts still record the planned mix."),
@@ -448,7 +452,7 @@ PROTEIN: list[tuple[str, str]] = [
     ),
     ("h2", "Info"),
     ("p", "Info summarizes the cloning panel: how many proteins, the ratio, the scheme, and each protein’s id, role, and parts. It also states that no destination backbone is registered, and it lists the expression lines you have set, including any EXP registration."),
-    ("li", "Register constructs stores the panel with this expression choice. It stays off until a target class, an expression system, a codon table, a codon strategy, and transient or stable are all set, and until at least one protein is on the panel. Hover the button to see what is still missing. The same proteins with the same expression choice stay Registered and are not stored twice."),
+    ("li", "Register constructs appears on the Construct tab once a protein is on the cloning panel. It stays off the Protein and Expression tabs. On Construct it stays disabled until a target class, an expression system, a codon table, a codon strategy, and transient or stable are all set. Hover the button to see what is still missing. The same proteins with the same expression choice stay Registered and are not stored twice."),
     ("li", "Copy build list puts a plain-text summary of the panel, the scheme, and the expression lines on the clipboard."),
     ("li", "Publish protein Report downloads a PDF named protein-recipe, followed by the panel id. The report is titled Protein Recipe Report. It lists the scheme, the ratio, each protein’s id, name, accession, role, parts, and translation, the backbone note, and the expression lines."),
     (
@@ -469,9 +473,9 @@ PROTEIN: list[tuple[str, str]] = [
     ("li", "Press Protein, then New."),
     ("li", "Search UniProt or the proteins already stored here, and select the hit."),
     ("li", "Read the sequence. Check the preferred translation. Set the cloning role and the parts, then add it to the cloning panel."),
-    ("li", "On Construct, choose one co-transfection or one plasmid per protein."),
+    ("li", "On Construct, choose one co-transfection or one plasmid per protein, then register the constructs."),
     ("li", "On Expression, set the class, the host, transient or stable, and the codon method."),
-    ("li", "In the Viewer, publish the recipe or copy the GaaL job, then register the constructs."),
+    ("li", "In the Viewer, publish the recipe or copy the GaaL job."),
 ]
 
 

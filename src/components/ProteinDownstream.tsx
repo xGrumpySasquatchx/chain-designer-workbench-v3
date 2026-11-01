@@ -1,6 +1,8 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { ConstructScreens } from './ConstructScreens';
 import { proteinBuildList, proteinGaalCsv, proteinGaalJobs } from '../model/gaal';
 import { cloningPanel, PROTEIN_SCHEMES, chosenTranslation, proteinRoleLabel } from '../model/proteins';
+import { screenSummary } from '../model/screens';
 import type { ProteinDraft, ProteinScheme } from '../model/types';
 
 function copy(text: string) {
@@ -11,6 +13,7 @@ function copy(text: string) {
 export function ProteinConstruct({
   drafts,
   scheme,
+  screens,
   wrapStyle,
   expanded,
   fold,
@@ -20,9 +23,11 @@ export function ProteinConstruct({
   onOpen,
   onChange,
   onScheme,
+  onScreens,
 }: {
   drafts: ProteinDraft[];
   scheme: ProteinScheme;
+  screens: string[];
   wrapStyle: CSSProperties;
   expanded: boolean;
   fold: ReactNode;
@@ -32,6 +37,7 @@ export function ProteinConstruct({
   onOpen: (id: string) => void;
   onChange: (draft: ProteinDraft) => void;
   onScheme: (scheme: ProteinScheme) => void;
+  onScreens: (id: string, on: boolean) => void;
 }) {
   const panel = cloningPanel(drafts);
   const schemeNote = PROTEIN_SCHEMES.find((item) => item.id === scheme)?.note ?? '';
@@ -45,7 +51,7 @@ export function ProteinConstruct({
             : 'Add a protein from the Protein tab'}
         </span>
         <span className="stat-grow" />
-        <span>{schemeNote}</span>
+        <span>{[schemeNote, screenSummary(screens)].filter(Boolean).join(' · ')}</span>
       </div>
       <div className="wrap" style={wrapStyle}>
         <aside className={`panel rail${expanded ? '' : ' is-folded'}`} aria-label="Proteins on the panel">
@@ -67,6 +73,7 @@ export function ProteinConstruct({
             ) : (
               <p className="sm">The cloning panel is empty.</p>
             )}
+            <ConstructScreens selected={screens} onToggle={onScreens} />
           </div>
           ) : null}
           {expanded ? grip : null}
@@ -154,6 +161,7 @@ export function ProteinHandoff({
   canRegister,
   registered,
   registerTitle,
+  showRegister,
   onRegister,
   onPublish,
   expanded,
@@ -167,6 +175,7 @@ export function ProteinHandoff({
   canRegister: boolean;
   registered: boolean;
   registerTitle: string;
+  showRegister: boolean;
   onRegister: () => void;
   onPublish: () => void;
   expanded: boolean;
@@ -231,19 +240,21 @@ export function ProteinHandoff({
                 <p className="sm">No destination backbone is registered.</p>
                 {expressionLines.length ? <p className="sm">{expressionLines.join(' · ')}</p> : null}
                 <div className="row">
-                  <button
-                    className="btn primary"
-                    type="button"
-                    disabled={!canRegister}
-                    title={registerTitle}
-                    onClick={() => {
-                      onRegister();
-                      setCopied('Register constructs');
-                      window.setTimeout(() => setCopied(''), 1600);
-                    }}
-                  >
-                    {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
-                  </button>
+                  {showRegister ? (
+                    <button
+                      className="btn primary"
+                      type="button"
+                      disabled={!canRegister}
+                      title={registerTitle}
+                      onClick={() => {
+                        onRegister();
+                        setCopied('Register constructs');
+                        window.setTimeout(() => setCopied(''), 1600);
+                      }}
+                    >
+                      {copied === 'Register constructs' || registered ? 'Registered' : 'Register constructs'}
+                    </button>
+                  ) : null}
                   <button
                     className="btn"
                     type="button"
