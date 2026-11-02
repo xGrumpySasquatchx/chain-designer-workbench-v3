@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import {
   PROTEIN_ROLES,
   addProteinAnnotation,
@@ -55,6 +55,7 @@ export function ProteinSequenceViewer({
   const [cursor, setCursor] = useState(1);
   const [highlight, setHighlight] = useState('');
   const [draftAnn, setDraftAnn] = useState({ type: 'Domain', name: '', start: '1', end: '1', note: '' });
+  const helpId = useId();
   useEffect(() => {
     if (sequence && draft.annotations.length === 0) {
       onChange({ ...draft, annotations: annotationsFromSequence(sequence) });
@@ -90,12 +91,6 @@ export function ProteinSequenceViewer({
     <section className="gsv" aria-label="Sequence viewer">
       <div className="gsv-head">
         <h3>Sequence viewer</h3>
-        <p className="sm">
-          Amino acids and the reverse translation. Zoom, annotations, and editing follow the Geneious sequence view.
-          The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. Annotations
-          and Tracks, to the right, turns each annotation type on or off. The map above the residues draws the types
-          that are on. Linear keeps one scrolling row. Wrap fits each row to the viewer.
-        </p>
       </div>
       <div className="gsv-toolbar">
         <button type="button" className="btn sm" onClick={() => setZoom(ZOOMS[Math.max(0, zoomIndex - 1)])} disabled={zoomIndex <= 0}>
@@ -128,6 +123,18 @@ export function ProteinSequenceViewer({
         <button type="button" className="btn sm" aria-pressed={wrapped} onClick={() => setWrapped(true)}>
           Wrap
         </button>
+        <span className="gsv-help">
+          <button type="button" className="gsv-help-btn" aria-label="About the sequence viewer" aria-describedby={helpId}>
+            ?
+          </button>
+          <span id={helpId} role="tooltip" className="gsv-help-tip">
+            <strong>Sequence viewer</strong>
+            Amino acids and the reverse translation. Zoom, annotations, and editing follow the Geneious sequence view.
+            The Geneious plugin viewer itself runs inside Geneious Prime, so this is the view in the workbench. Annotations
+            and Tracks, to the right, turns each annotation type on or off. The map above the residues draws the types
+            that are on. Linear keeps one scrolling row. Wrap fits each row to the viewer.
+          </span>
+        </span>
       </div>
       <p className="sm gsv-inspect">
         {at} {THREE[amino[at - 1]] ?? amino[at - 1]} {codon}
