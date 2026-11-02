@@ -172,6 +172,8 @@ button.gsv-res{cursor:pointer}
 .gsv-string{margin-left:22px}
 .gsv-ann-line{display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 8px}
 .gsv-ann-line .seq-check{white-space:normal; align-items:flex-start; min-width:0}
+.gsv-annotations .src-folder{border:1px solid var(--rule); border-radius:4px}
+.gsv-annotations .src-folder > :not(.src-head){margin:0 8px 8px}
 .gsv-ann-list{max-height:480px}
 .gsv-ann-line .search{width:72px}
 .gsv-clone{margin-top:8px}

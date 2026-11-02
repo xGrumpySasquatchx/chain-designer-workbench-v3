@@ -17,6 +17,7 @@ import {
   visibleAnnotations,
 } from '../model/proteins';
 import { characterizedTranslations, preferredTranslation } from '../model/sequences';
+import { SrcFolder } from './FacetRail';
 import type { NucleotideTranslation } from '../model/sequences';
 import type { ProteinAnnotation, ProteinDraft, ProteinRole } from '../model/types';
 
@@ -594,15 +595,16 @@ function AnnotationEditor({
   onDelete: (id: string) => void;
   onToggle: (id: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const ordered = [...annotations].sort((a, b) => a.start - b.start || a.end - b.end || a.name.localeCompare(b.name));
   const shown = visibleAnnotations(annotations, hiddenTypes).length;
   const hidden = new Set(hiddenTypes);
   return (
     <div className="gsv-annotations">
-      <h4>Annotations</h4>
+      <SrcFolder name="Annotations" count={`${shown} of ${ordered.length}`} open={open} onToggle={() => setOpen((value) => !value)}>
       <p className="sm">
         {shown} of {ordered.length} drawn on the sequence. Uncheck one annotation to hide that one. A type that is off
-        hides every annotation of that type.
+        hides every annotation of that type. Remove takes an annotation off the sequence.
       </p>
       <ul className="protein-hits gsv-ann-list">
         {ordered.map((annotation) => (
@@ -675,6 +677,7 @@ function AnnotationEditor({
           </button>
         </div>
       </div>
+      </SrcFolder>
     </div>
   );
 }
