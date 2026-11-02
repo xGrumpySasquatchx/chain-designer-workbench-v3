@@ -27,6 +27,8 @@ import {
   PROTEIN_USES,
   PROTEINS,
   aminoAcidSequence,
+  annotationColor,
+  annotationInk,
   annotationLanes,
   annotationSpan,
   annotationTypeCounts,
@@ -1267,7 +1269,17 @@ check(
     fizAnnotations.find((annotation) => annotation.type === 'Sequence conflict')?.name === 'G→D' &&
     fizAnnotations.find((annotation) => annotation.type === 'Zinc finger')?.start === 29 &&
     visibleAnnotations(fizAnnotations, hiddenBias).every((annotation) => annotation.type !== 'Compositional bias') &&
-    fizAnnotations.some((annotation) => annotation.type === 'Compositional bias'),
+    fizAnnotations.some((annotation) => annotation.type === 'Compositional bias') &&
+    annotationColor('Chain') === '#00FF00' &&
+    annotationColor('Domain') === '#FF6464' &&
+    annotationColor('Helix') === '#FF46FF' &&
+    annotationColor('Signal') === '#FF73FF' &&
+    annotationColor('CDS') === '#FFFF00' &&
+    annotationColor('Zinc finger') === '#2E96FF' &&
+    annotationColor('Compositional bias') === '#FFFFB9' &&
+    annotationColor('Sequence conflict') === '#FF6400' &&
+    annotationInk('#00FF00') === '#000000' &&
+    annotationInk('#FF6400') === '#FFFFFF',
 );
 
 const panelSequence = {

@@ -291,6 +291,125 @@ export function annotationTypeLabel(type: string): string {
   return code ? `${code} · ${type}` : type;
 }
 
+/** UniProt feature name to the annotation type Geneious stores for that feature. */
+const GENEIOUS_FEATURE_TYPES: Record<string, string> = {
+  'Initiator methionine': 'initiator methionine',
+  Signal: 'signal peptide',
+  'Transit peptide': 'transit peptide',
+  Propeptide: 'propeptide',
+  Chain: 'chain',
+  Peptide: 'peptide',
+  'Topological domain': 'topological domain',
+  Transmembrane: 'region spanning transmembrane',
+  Intramembrane: 'region within transmembrane',
+  Domain: 'domain',
+  Repeat: 'repeat',
+  'Zinc finger': 'zinc finger region',
+  'DNA binding': 'DNA-binding region',
+  Region: 'region of interest',
+  'Coiled coil': 'coiled-coil region',
+  Motif: 'motif of biological interest',
+  'Compositional bias': 'compositionally biased region',
+  'Active site': 'active site',
+  'Binding site': 'binding site',
+  Site: 'site of interest',
+  'Non-standard residue': 'non-standard amino acid',
+  'Modified residue': 'posttranslational modification of a residue',
+  Lipidation: 'covalent binding of a lipid moiety',
+  Glycosylation: 'glycosylation site',
+  'Disulfide bond': 'disulfide bond',
+  'Cross-link': 'posttranslationally formed amino acid bonds',
+  'Alternative sequence': 'sequence variant',
+  'Natural variant': 'sequence variant',
+  Mutagenesis: 'site experimentally altered by mutagenesis',
+  'Sequence uncertainty': 'uncertainties',
+  'Sequence conflict': 'source conflict',
+  'Non-adjacent residues': 'non-consecutive',
+  'Non-terminal residue': 'not the terminal residue',
+  Helix: 'helix',
+  'Beta strand': 'strand',
+  Turn: 'turn',
+};
+
+/** AnnotationTypeDefault colors from Geneious Prime, keyed by the type string Geneious matches. */
+const GENEIOUS_TYPE_COLORS: Record<string, string> = {
+  cds: '#FFFF00',
+  chain: '#00FF00',
+  protein: '#00FF00',
+  peptide: '#00FF00',
+  'signal peptide': '#FF73FF',
+  sig_peptide: '#FF73FF',
+  propeptide: '#B9E6C8',
+  proprotein: '#B9E6C8',
+  'topological domain': '#FFCCCC',
+  'transmembrane region': '#B40000',
+  domain: '#FF6464',
+  repeat: '#E7960A',
+  repeat_region: '#E7960A',
+  'region of interest': '#AAAAAA',
+  region: '#AAAAAA',
+  misc_feature: '#AAAAAA',
+  'coiled-coil region': '#B48CFF',
+  'motif of biological interest': '#96008C',
+  motif: '#96008C',
+  'active site': '#0000FF',
+  'binding site': '#B46400',
+  'dna binding region': '#B46400',
+  'calcium-binding region': '#783200',
+  'metal ion binding site': '#783200',
+  'covalent binding of a lipid moiety': '#783200',
+  'site of interest': '#00008C',
+  site: '#00008C',
+  'glycosylation site': '#8200FF',
+  'disulfide bond': '#FFFF00',
+  bond: '#FFFF00',
+  'sequence variant': '#FFC800',
+  variant: '#FFB400',
+  variation: '#FFB400',
+  'source conflict': '#FF6400',
+  conflict: '#FF6400',
+  modified_base: '#FF6400',
+  'posttranslational modification of a residue': '#FF0000',
+  unsure: '#FFB400',
+  helix: '#FF46FF',
+  strand: '#E6C300',
+  turn: '#2364FF',
+  coil: '#CCCCCC',
+  'mat_peptide': '#005A28',
+};
+
+/** Colors Geneious assigns when a type has no AnnotationTypeDefault entry. Index is abs(hashCode % 24). */
+const GENEIOUS_HASH_PALETTE = [
+  '#0000FF', '#FF0000', '#FFFF00', '#00FF00', '#FFC800', '#FFAFAF', '#00FFFF', '#FF00FF',
+  '#960000', '#A3BF00', '#FFFFB9', '#F0C800', '#008000', '#00978F', '#95E2FF', '#EEEEEE',
+  '#919191', '#00009D', '#AD6AFF', '#7A007A', '#AA0000', '#DCAA8C', '#555555', '#2E96FF',
+];
+
+function javaStringHash(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash, 31) + value.charCodeAt(index);
+  }
+  return hash | 0;
+}
+
+/** The Geneious annotation color for this feature type. */
+export function annotationColor(type: string): string {
+  const geneious = (GENEIOUS_FEATURE_TYPES[type] ?? type).toLowerCase();
+  const known = GENEIOUS_TYPE_COLORS[geneious];
+  if (known) return known;
+  return GENEIOUS_HASH_PALETTE[Math.abs(javaStringHash(geneious) % 24)] ?? GENEIOUS_TYPE_COLORS.misc_feature;
+}
+
+/** Black or white label, using the same luminance rule as the Geneious sequence viewer. */
+export function annotationInk(fill: string): string {
+  const value = Number.parseInt(fill.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return red + green + blue > 384 || green > 200 ? '#000000' : '#FFFFFF';
+}
+
 /** How many annotations share each type, in type name order. */
 export function annotationTypeCounts(annotations: ProteinAnnotation[]): { type: string; count: number }[] {
   const counts = new Map<string, number>();

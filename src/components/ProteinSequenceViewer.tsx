@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   PROTEIN_ROLES,
   addProteinAnnotation,
+  annotationColor,
+  annotationInk,
   annotationLanes,
   annotationSpan,
   annotationTypeCounts,
@@ -373,8 +375,9 @@ function AnnotationOverview({
             <button
               key={item.annotation.id}
               type="button"
-              className={`gsv-ann-bar ${annColor(item.annotation.type)} ${highlightClass(item.annotation, highlight)}`}
+              className={`gsv-ann-bar ${highlightClass(item.annotation, highlight)}`}
               style={{
+                ...annotationPaint(item.annotation.type),
                 left: `${span.left * 100}%`,
                 width: `max(${span.width * 100}%, 6px)`,
                 top: item.lane * 18 + 2,
@@ -452,7 +455,7 @@ function AnnotationTypes({
                 aria-label={`Show ${annotationTypeLabel(item.type)}`}
                 onChange={(event) => onToggleType(item.type, event.target.checked)}
               />
-              <span className={`gsv-type-swatch ${annColor(item.type)}`} aria-hidden="true" />
+              <span className="gsv-type-swatch" style={{ background: annotationColor(item.type) }} aria-hidden="true" />
               <span className="gsv-type-name">
                 <span className="nm">{annotationTypeLabel(item.type)}</span>
                 <span className="n">{item.count}</span>
@@ -471,10 +474,9 @@ function AnnotationTypes({
   );
 }
 
-function annColor(type: string): string {
-  let hash = 0;
-  for (let index = 0; index < type.length; index += 1) hash = (hash + type.charCodeAt(index)) % 4;
-  return `gsv-ann-${hash}`;
+function annotationPaint(type: string): CSSProperties {
+  const fill = annotationColor(type);
+  return { background: fill, color: annotationInk(fill) };
 }
 
 function SequenceLine({
@@ -525,8 +527,9 @@ function SequenceLine({
             <button
               key={item.annotation.id}
               type="button"
-              className={`gsv-ann-bar ${annColor(item.annotation.type)} ${highlightClass(item.annotation, highlight)}`}
+              className={`gsv-ann-bar ${highlightClass(item.annotation, highlight)}`}
               style={{
+                ...annotationPaint(item.annotation.type),
                 left: `calc(${item.start - row.start} * var(--gsv-cell))`,
                 width: `calc(${item.end - item.start + 1} * var(--gsv-cell))`,
                 top: item.lane * 18 + 2,
