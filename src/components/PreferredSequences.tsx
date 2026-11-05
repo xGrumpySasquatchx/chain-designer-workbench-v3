@@ -70,9 +70,10 @@ export function PreferredSequences({
     <section className="ratio-plan" aria-label="Preferred sequences" style={{ '--seq-id-w': `${idW}px` } as CSSProperties}>
       <h3>Preferred sequences</h3>
       <p className="sm">
-        Each protein uses the id from its panel well. Drag the divider to read the sequence, then check a codon
-        category or one registered string. The preferred category stays marked. A variable domain also ranks CDR1,
-        CDR2, and CDR3 on their own, and a CDR choice leaves the chain translation as it is.
+        Each protein uses the id from its panel well. The full translation is labeled Whole chain. Under a variable
+        domain, the shorter loops are labeled CDR1, CDR2, and CDR3. Drag the divider to read the sequence, then
+        check a codon category or one registered string. The preferred category stays marked. A CDR choice leaves
+        the chain translation as it is.
       </p>
       {shown.map(({ chain, regions }) => {
         const choices = regions.filter((region) => region.nucleotides.length > 1).length;
@@ -95,7 +96,7 @@ export function PreferredSequences({
                       key={cdr.id}
                       nested
                       pickId={cdr.id}
-                      title={cdr.name}
+                      scope={cdr.name}
                       detail={`residues ${cdr.start}–${cdr.end}`}
                       aminoAcid={cdr.aminoAcid}
                       nucleotides={cdr.nucleotides}
@@ -135,6 +136,7 @@ function RegionChoice({
   return (
     <SequenceChoice
       pickId={region.id}
+      scope="Whole chain"
       title={region.uid}
       detail={region.label}
       aminoAcid={region.aminoAcid}
@@ -147,7 +149,8 @@ function RegionChoice({
 
 function SequenceChoice({
   pickId,
-  title,
+  scope,
+  title = '',
   detail,
   aminoAcid,
   nucleotides,
@@ -156,7 +159,8 @@ function SequenceChoice({
   nested = false,
 }: {
   pickId: string;
-  title: string;
+  scope: string;
+  title?: string;
   detail: string;
   aminoAcid: string;
   nucleotides: NucleotideTranslation[];
@@ -166,14 +170,16 @@ function SequenceChoice({
 }) {
   const preferred = preferredTranslation(nucleotides);
   const pick = picks[pickId] ?? '';
+  const named = [scope, title].filter(Boolean).join(', ');
   return (
     <div className={`seq-row${nested ? ' seq-cdr' : ''}`} role="row">
       <div className="seq-id">
-        <span className="nm">{title}</span>
+        <span className="nm seq-scope">{scope}</span>
+        {title ? <span className="sm">{title}</span> : null}
         <span className="sm">{detail}</span>
         <span className="seq-aa">{aminoAcid}</span>
       </div>
-      <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${title}`}>
+      <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${named}`}>
         <div className="seq-rank-head">
           <span />
           <span>Rank</span>

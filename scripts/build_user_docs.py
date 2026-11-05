@@ -220,14 +220,14 @@ ANTIBODY: list[tuple[str, str]] = [
     ("h2", "Preferred sequences"),
     (
         "p",
-        "Preferred sequences lists every region, including regions that have only one translation. The id on each row came from the panel well, so you can see which molecule and which chain it belongs to. A shared insert uses the panel id. A chain with more than one insert adds that insert’s label.",
+        "Preferred sequences lists every region, including regions that have only one translation. The full translation on a row is labeled Whole chain. The id under that label came from the panel well, so you can see which molecule and which chain it belongs to. A shared insert uses the panel id. A chain with more than one insert adds that insert’s label.",
     ),
     ("li", "Drag the vertical divider to widen the protein column and read the amino-acid sequence. Double-click the divider to reset it."),
     ("li", "Each codon category shows DNA. The count opens the registered nucleotide strings for that category."),
     ("li", "Check the category to use string 1. Check a later string, such as the 6th, to use that registration. The Preferred tag stays on the category."),
     ("li", "A box to the right of each ranking is green for the highest, yellow for a middle rank, and red for the lowest. The Used column is how many registered molecules already carry that translation."),
     ("li", "A universal light chain can carry more than one characterized translation. Check the string you want for that chain."),
-    ("li", "Under a VH, VL, VHH, or scFv, CDR1, CDR2, and CDR3 each have their own codon ranking. Check a CDR category, or open it and check a later string. That choice stays on the CDR and leaves the chain translation as it is."),
+    ("li", "Under a VH, VL, VHH, or scFv, the shorter loops are labeled CDR1, CDR2, and CDR3, and each has its own codon ranking. Check a CDR category, or open it and check a later string. That choice stays on the CDR and leaves the Whole chain translation as it is."),
     (
         "p",
         "Drag the horizontal bar between the sequences and the table underneath to give one or the other more room. Double-click that bar to reset it.",

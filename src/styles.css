@@ -77,18 +77,19 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .seq-cdr .seq-id{padding-left:16px}
 .seq-id{min-width:0; display:flex; flex-direction:column; gap:1px}
 .seq-id .nm{font-size:12px; font-weight:650; white-space:normal; overflow-wrap:anywhere}
+.seq-scope{letter-spacing:0.01em}
 .seq-aa{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:0.02em; margin:0; white-space:normal; overflow-wrap:anywhere}
 .seq-col-grip{position:absolute; top:0; bottom:0; left:calc(var(--seq-id-w, 360px) + 10px); width:7px; margin-left:-3px; z-index:1; cursor:col-resize; border:0; padding:0; background:transparent}
 .seq-col-grip::before{content:''; position:absolute; top:0; bottom:0; left:2px; width:3px; background:var(--rule)}
 .seq-col-grip:hover::before,.seq-col-grip:focus-visible::before{background:var(--grain)}
 .seq-options{display:flex; flex-direction:column; gap:6px; min-width:0}
-.seq-rank-head,.seq-cat-top{display:grid; grid-template-columns:minmax(0,1fr) 12px 2.4em 2.6em; align-items:center; column-gap:8px}
+.seq-rank-head,.seq-cat-top{display:grid; grid-template-columns:minmax(0,1fr) 16px 2.4em 2.6em; align-items:center; column-gap:8px}
 .seq-rank-head{font-size:10px; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-3)}
 .seq-rank-head span:nth-child(2),.seq-rank-head span:nth-child(4){text-align:center}
-.seq-rank{width:12px; height:12px; border-radius:2px; justify-self:center; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.18)}
-.seq-rank.high{background:#2F9E5B}
-.seq-rank.mid{background:#E0B000}
-.seq-rank.low{background:#D24B3C}
+.seq-rank{width:16px; height:16px; border-radius:3px; justify-self:center}
+.seq-rank.high{background:#00B140; box-shadow:inset 0 0 0 1px #007A2C}
+.seq-rank.mid{background:#FFC400; box-shadow:inset 0 0 0 1px #C49000}
+.seq-rank.low{background:#F0251B; box-shadow:inset 0 0 0 1px #B0120C}
 .seq-used{text-align:center; font-variant-numeric:tabular-nums; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-2)}
 .seq-cat{display:flex; flex-direction:column; gap:2px; min-width:0}
 .seq-cat-top .seq-check{min-width:0}
