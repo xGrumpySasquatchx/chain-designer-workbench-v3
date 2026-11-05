@@ -70,7 +70,8 @@ export function PreferredSequences({
       <h3>Preferred sequences</h3>
       <p className="sm">
         Each protein uses the id from its panel well. Drag the divider to read the sequence, then check a codon
-        category or one registered string. The preferred category stays marked.
+        category or one registered string. The preferred category stays marked. A variable domain also ranks CDR1,
+        CDR2, and CDR3 on their own, and a CDR choice leaves the chain translation as it is.
       </p>
       {shown.map(({ chain, regions }) => {
         const choices = regions.filter((region) => region.nucleotides.length > 1).length;
@@ -86,7 +87,22 @@ export function PreferredSequences({
             </h4>
             <div className="seq-list" role="table" aria-label={`Nucleotide choices for ${chain.name}`}>
               {regions.map((region) => (
-                <RegionChoice key={region.id} region={region} picks={picks} onPick={onPick} />
+                <div className="seq-domain" key={region.id}>
+                  <RegionChoice region={region} picks={picks} onPick={onPick} />
+                  {region.cdrs.map((cdr) => (
+                    <SequenceChoice
+                      key={cdr.id}
+                      nested
+                      pickId={cdr.id}
+                      title={cdr.name}
+                      detail={`residues ${cdr.start}–${cdr.end}`}
+                      aminoAcid={cdr.aminoAcid}
+                      nucleotides={cdr.nucleotides}
+                      picks={picks}
+                      onPick={onPick}
+                    />
+                  ))}
+                </div>
               ))}
               <button
                 type="button"
@@ -115,24 +131,56 @@ function RegionChoice({
   picks: Record<string, string>;
   onPick: (regionId: string, translationId: string) => void;
 }) {
-  const preferred = preferredTranslation(region.nucleotides);
-  const pick = picks[region.id] ?? '';
   return (
-    <div className="seq-row" role="row">
+    <SequenceChoice
+      pickId={region.id}
+      title={region.uid}
+      detail={region.label}
+      aminoAcid={region.aminoAcid}
+      nucleotides={region.nucleotides}
+      picks={picks}
+      onPick={onPick}
+    />
+  );
+}
+
+function SequenceChoice({
+  pickId,
+  title,
+  detail,
+  aminoAcid,
+  nucleotides,
+  picks,
+  onPick,
+  nested = false,
+}: {
+  pickId: string;
+  title: string;
+  detail: string;
+  aminoAcid: string;
+  nucleotides: NucleotideTranslation[];
+  picks: Record<string, string>;
+  onPick: (regionId: string, translationId: string) => void;
+  nested?: boolean;
+}) {
+  const preferred = preferredTranslation(nucleotides);
+  const pick = picks[pickId] ?? '';
+  return (
+    <div className={`seq-row${nested ? ' seq-cdr' : ''}`} role="row">
       <div className="seq-id">
-        <span className="nm">{region.uid}</span>
-        <span className="sm">{region.label}</span>
-        <span className="seq-aa">{region.aminoAcid}</span>
+        <span className="nm">{title}</span>
+        <span className="sm">{detail}</span>
+        <span className="seq-aa">{aminoAcid}</span>
       </div>
-      <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${region.uid}`}>
-        {region.nucleotides.map((item) => (
+      <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${title}`}>
+        {nucleotides.map((item) => (
           <SequenceCheck
             key={item.id}
             item={item}
             categoryChecked={categoryHolds(item, pick, !pick && item.id === preferred?.id)}
             pick={pick || (item.id === preferred?.id ? item.id : '')}
-            onPickCategory={() => onPick(region.id, item.id)}
-            onPickString={(id) => onPick(region.id, id)}
+            onPickCategory={() => onPick(pickId, item.id)}
+            onPickString={(id) => onPick(pickId, id)}
           />
         ))}
       </div>

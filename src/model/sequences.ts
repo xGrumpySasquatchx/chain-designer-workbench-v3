@@ -97,6 +97,17 @@ export function nucleotideTranslations(chain: Chain, registeredMolecules: number
   ];
 }
 
+/** One complementarity-determining loop inside a variable domain. */
+export interface CdrSequence {
+  id: string;
+  name: 'CDR1' | 'CDR2' | 'CDR3';
+  /** 1-based inclusive span inside the parent amino-acid sequence. */
+  start: number;
+  end: number;
+  aminoAcid: string;
+  nucleotides: NucleotideTranslation[];
+}
+
 /** One amino-acid building block on a chain, and the nucleotide strings registered for it. */
 export interface FvRegion {
   id: string;
@@ -109,6 +120,8 @@ export interface FvRegion {
   well: string | null;
   aminoAcid: string;
   nucleotides: NucleotideTranslation[];
+  /** Empty for a building block that is not a variable domain. */
+  cdrs: CdrSequence[];
 }
 
 interface InsertSpec {
@@ -345,6 +358,56 @@ export function characterizedTranslations(id: string, aminoAcid: string): Nucleo
   return codonVersions(id, aminoAcid, 3);
 }
 
+const CDR_NAMES = ['CDR1', 'CDR2', 'CDR3'] as const;
+
+/** VH, VL, VHH, and an scFv carry three ranked CDR nucleotide choices. */
+export function hasCdrs(kind: string): boolean {
+  return kind === 'VH' || kind === 'VL' || kind === 'VHH' || kind === 'scFv';
+}
+
+/**
+ * Three non-overlapping loops inside a variable-domain sequence.
+ * Positions are 1-based and stay inside `length`.
+ */
+export function cdrSpans(length: number): { name: (typeof CDR_NAMES)[number]; start: number; end: number }[] {
+  if (length < 15) return [];
+  const width = Math.max(4, Math.floor(length / 6));
+  const gap = Math.max(1, Math.floor((length - width * 3) / 4));
+  let cursor = gap;
+  return CDR_NAMES.map((name) => {
+    const start = cursor + 1;
+    const end = Math.min(length, cursor + width);
+    cursor = end + gap;
+    return { name, start, end };
+  });
+}
+
+/** Ranked nucleotide strings for one CDR. The preferred category is the CHO string. */
+export function cdrTranslations(id: string, aminoAcid: string, name: string): NucleotideTranslation[] {
+  return codonVersions(id, aminoAcid, 3).map((item) => ({
+    ...item,
+    contribution: item.preferred
+      ? `Highest titer share recorded for ${name}.`
+      : `Same ${name} amino acids, a different nucleotide string, with its own expression history.`,
+  }));
+}
+
+function cdrsFor(regionId: string, kind: string, aminoAcid: string): CdrSequence[] {
+  if (!hasCdrs(kind)) return [];
+  return cdrSpans(aminoAcid.length).map((span) => {
+    const amino = aminoAcid.slice(span.start - 1, span.end);
+    const id = `${regionId}-${span.name}`;
+    return {
+      id,
+      name: span.name,
+      start: span.start,
+      end: span.end,
+      aminoAcid: amino,
+      nucleotides: cdrTranslations(id, amino, span.name),
+    };
+  });
+}
+
 function codonVersions(id: string, aminoAcid: string, variants: number): NucleotideTranslation[] {
   const count = variants;
   return CODON_NAMES.slice(0, count).map((item, index) => {
@@ -405,6 +468,7 @@ export function chainRegions(chain: Chain, molecules: LumaMolecule[]): FvRegion[
         well,
         aminoAcid,
         nucleotides,
+        cdrs: cdrsFor(id, insert.kind, aminoAcid),
       });
     });
   }

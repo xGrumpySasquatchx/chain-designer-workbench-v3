@@ -730,6 +730,28 @@ check(
     (multiFv.nucleotides[0].registrations ?? []).every((item) => translateDna(item.dna) === multiFv.aminoAcid),
   `${heavyRegions.length} Fvs, one with ${multiFv?.nucleotides.length ?? 0} nucleotide strings`,
 );
+check(
+  'a variable domain ranks CDR1, CDR2, and CDR3 apart from the chain translation',
+  multiFv.cdrs.map((cdr) => cdr.name).join(',') === 'CDR1,CDR2,CDR3' &&
+    multiFv.cdrs[0].end < multiFv.cdrs[1].start &&
+    multiFv.cdrs[1].end < multiFv.cdrs[2].start &&
+    multiFv.cdrs.every(
+      (cdr) =>
+        cdr.start >= 1 &&
+        cdr.end <= multiFv.aminoAcid.length &&
+        cdr.aminoAcid === multiFv.aminoAcid.slice(cdr.start - 1, cdr.end) &&
+        cdr.nucleotides.length === 3 &&
+        cdr.nucleotides.filter((item) => item.preferred).length === 1 &&
+        cdr.nucleotides.every((item) => item.dna && translateDna(item.dna) === cdr.aminoAcid) &&
+        new Set(cdr.nucleotides.map((item) => item.dna)).size === 3 &&
+        !cdr.nucleotides.some((item) => multiFv.nucleotides.some((chain) => chain.id === item.id)),
+    ) &&
+    new Set(multiFv.cdrs.flatMap((cdr) => cdr.nucleotides.map((item) => item.id))).size === 9 &&
+    muteinRegions.every((region) => region.cdrs.length === 0) &&
+    designedRegions.every((region) => region.cdrs.length === 0) &&
+    sharedLight[0].cdrs.length === 3,
+  multiFv.cdrs.map((cdr) => `${cdr.name} ${cdr.start}-${cdr.end}`).join(', '),
+);
 const seven = registeredStrings('demo', 'ACDEFGHIKLMNPQRSTVWY', 1, 7);
 check(
   'a codon category of seven strings can be opened so the sixth is its own choice',
