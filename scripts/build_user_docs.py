@@ -225,6 +225,7 @@ ANTIBODY: list[tuple[str, str]] = [
     ("li", "Drag the vertical divider to widen the protein column and read the amino-acid sequence. Double-click the divider to reset it."),
     ("li", "Each codon category shows DNA. The count opens the registered nucleotide strings for that category."),
     ("li", "Check the category to use string 1. Check a later string, such as the 6th, to use that registration. The Preferred tag stays on the category."),
+    ("li", "A box to the right of each ranking is green for the highest, yellow for a middle rank, and red for the lowest. The Used column is how many registered molecules already carry that translation."),
     ("li", "A universal light chain can carry more than one characterized translation. Check the string you want for that chain."),
     ("li", "Under a VH, VL, VHH, or scFv, CDR1, CDR2, and CDR3 each have their own codon ranking. Check a CDR category, or open it and check a later string. That choice stays on the CDR and leaves the chain translation as it is."),
     (

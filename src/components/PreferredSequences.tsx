@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPoin
 import {
   isUniversalLight,
   preferredTranslation,
+  rankTone,
   type FvRegion,
   type NucleotideRegistration,
   type NucleotideTranslation,
@@ -173,10 +174,17 @@ function SequenceChoice({
         <span className="seq-aa">{aminoAcid}</span>
       </div>
       <div className="seq-options" role="group" aria-label={`Nucleotide sequence for ${title}`}>
-        {nucleotides.map((item) => (
+        <div className="seq-rank-head">
+          <span />
+          <span>Rank</span>
+          <span />
+          <span>Used</span>
+        </div>
+        {nucleotides.map((item, index) => (
           <SequenceCheck
             key={item.id}
             item={item}
+            tone={rankTone(index, nucleotides.length)}
             categoryChecked={categoryHolds(item, pick, !pick && item.id === preferred?.id)}
             pick={pick || (item.id === preferred?.id ? item.id : '')}
             onPickCategory={() => onPick(pickId, item.id)}
@@ -194,14 +202,18 @@ function categoryHolds(item: NucleotideTranslation, pick: string, fallback: bool
   return (item.registrations ?? []).some((registration) => registration.id === pick);
 }
 
+const RANK_LABEL = { high: 'Highest rank', mid: 'Middle rank', low: 'Lowest rank' } as const;
+
 function SequenceCheck({
   item,
+  tone,
   categoryChecked,
   pick,
   onPickCategory,
   onPickString,
 }: {
   item: NucleotideTranslation;
+  tone: 'high' | 'mid' | 'low';
   categoryChecked: boolean;
   pick: string;
   onPickCategory: () => void;
@@ -227,6 +239,7 @@ function SequenceCheck({
           <span>{item.name}</span>
           {item.preferred ? <span className="pref-tag">Preferred</span> : null}
         </label>
+        <span className={`seq-rank ${tone}`} role="img" aria-label={RANK_LABEL[tone]} title={RANK_LABEL[tone]} />
         {registrations.length ? (
           <button
             type="button"
@@ -238,8 +251,14 @@ function SequenceCheck({
             {registrations.length}
           </button>
         ) : (
-          <span className="n">{item.molecules}</span>
+          <span />
         )}
+        <span
+          className="seq-used"
+          title={`Used on ${item.molecules} registered molecule${item.molecules === 1 ? '' : 's'}`}
+        >
+          {item.molecules}
+        </span>
       </div>
       {shown ? (
         <span className="seq-dna" title={shown.dna}>

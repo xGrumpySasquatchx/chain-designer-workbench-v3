@@ -71,6 +71,15 @@ export function preferredTranslation(list: NucleotideTranslation[]): NucleotideT
   return list.find((item) => item.preferred) ?? list[0];
 }
 
+export type RankTone = 'high' | 'mid' | 'low';
+
+/** First place is green, last place is red, and any rank between them is yellow. */
+export function rankTone(index: number, total: number): RankTone {
+  if (total <= 1 || index <= 0) return 'high';
+  if (index >= total - 1) return 'low';
+  return 'mid';
+}
+
 /** Nucleotide strings already on record for this chain. Empty when the chain has never been registered. */
 export function nucleotideTranslations(chain: Chain, registeredMolecules: number): NucleotideTranslation[] {
   if (registeredMolecules < 1) return [];

@@ -10,7 +10,7 @@ import { applyMutations, mutationRelevant, specificVectorIds } from '../src/mode
 import { EMPTY_DESIGN, designForFormat, fvForWell, joinCTerm, matchFormat, removeCTerm, setBlockTarget } from '../src/model/design';
 import { classifyFormat, constructSchemes, constructsProduced, polypeptides, rankConstructs } from '../src/model/inference';
 import { levelSteps, showDesignSteps } from '../src/model/levels';
-import { chainRegions, characterizedTranslations, insertsOf, nucleotideTranslations, registeredStrings, translateDna } from '../src/model/sequences';
+import { chainRegions, characterizedTranslations, insertsOf, nucleotideTranslations, rankTone, registeredStrings, translateDna } from '../src/model/sequences';
 import { cellOutline, lattice } from '../src/model/glyph';
 import { archetypeIdsOf, assembleBook, chainUid, newestFirst, newRequest, registerRequest, requestShelf } from '../src/model/luma';
 import { chooseConstruct, constructElementString, searchConstructs } from '../src/model/constructs';
@@ -753,6 +753,17 @@ check(
   multiFv.cdrs.map((cdr) => `${cdr.name} ${cdr.start}-${cdr.end}`).join(', '),
 );
 const seven = registeredStrings('demo', 'ACDEFGHIKLMNPQRSTVWY', 1, 7);
+check(
+  'a ranking is green, then yellow, then red',
+  rankTone(0, 3) === 'high' &&
+    rankTone(1, 3) === 'mid' &&
+    rankTone(2, 3) === 'low' &&
+    rankTone(0, 1) === 'high' &&
+    rankTone(0, 2) === 'high' &&
+    rankTone(1, 2) === 'low' &&
+    multiFv.nucleotides[0].molecules > 0 &&
+    multiFv.cdrs.every((cdr) => cdr.nucleotides.every((item) => item.molecules > 0)),
+);
 check(
   'a codon category of seven strings can be opened so the sixth is its own choice',
   seven.length === 7 &&
