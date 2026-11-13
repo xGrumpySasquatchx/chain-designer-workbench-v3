@@ -206,7 +206,7 @@ function ProteinRail({
                 </div>
               ))
             ) : (
-              <div className="src-empty">None</div>
+              <div className="src-empty">No drafts yet.</div>
             )}
           </div>
           {PROTEIN_FAMILIES.map((family) => {
@@ -236,7 +236,7 @@ function ProteinRail({
                     </button>
                   ))
                 ) : (
-                  <div className="src-empty">None</div>
+                  <div className="src-empty">{q ? 'Nothing matches that search.' : 'No proteins in this family.'}</div>
                 )}
               </div>
             );

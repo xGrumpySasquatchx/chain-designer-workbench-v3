@@ -133,7 +133,7 @@ function RequestGroup({
           </div>
         ))
       ) : (
-        <div className="src-empty">None</div>
+        <div className="src-empty">No requests yet.</div>
       )}
       {note ? <div className="src-empty">{note}</div> : null}
     </div>
