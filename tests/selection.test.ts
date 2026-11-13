@@ -804,7 +804,10 @@ check(
     showDesignSteps('fmt', 52, 0) &&
     !showDesignSteps('chn', 52, 0) &&
     showDesignSteps('chn', 0, null) &&
-    !showDesignSteps('fmt', 52, null),
+    !showDesignSteps('fmt', 52, null) &&
+    showDesignSteps('chn', 2, null, true) &&
+    showDesignSteps('mut', 2, 2, true) &&
+    !showDesignSteps('chn', 2, null, false),
 );
 const matched = matchFormat(seed, fabDesign);
 check('a Fab / Homo-Fc design matches wild-type IgG', matched?.id === 'F-001', matched?.id);

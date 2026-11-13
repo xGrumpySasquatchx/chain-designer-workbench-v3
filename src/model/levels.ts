@@ -11,13 +11,16 @@ const STEPS: { g: Grain; name: string; designOnly?: boolean }[] = [
 
 /**
  * Variable regions and mutations stay available while the open panel is still empty,
- * and while the Request tab is editing that draft.
+ * while the Request tab is editing that draft, and after a panel created here has
+ * been given a UID. A catalog panel whose molecules already fix the design does not.
  */
 export function showDesignSteps(
   grain: Grain,
   activeMoleculeCount: number | null,
   draftMoleculeCount: number | null,
+  userPanel = false,
 ): boolean {
+  if (userPanel) return true;
   if (activeMoleculeCount === 0) return true;
   return grain === 'fmt' && draftMoleculeCount === 0;
 }

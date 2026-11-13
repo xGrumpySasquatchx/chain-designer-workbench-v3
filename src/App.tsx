@@ -389,6 +389,7 @@ export default function App() {
     [state.requests, state.userPanels, state.userMolecules],
   );
   const activePanel = panelById(book, state.activePanelId);
+  const userDesigned = state.userPanels.some((panel) => panel.id === state.activePanelId);
   const panelFormats = formatIdsOf(book, state.activePanelId);
   const inferred = useMemo(() => {
     const ids = new Set<string>();
@@ -460,11 +461,13 @@ export default function App() {
     keep(next.reachV, panelConstructs);
     keep(next.buildV, panelConstructs);
     keep(next.claimV, panelConstructs);
-    keep(next.reachM, panelMutations);
-    keep(next.buildM, panelMutations);
-    keep(next.claimM, panelMutations);
+    if (!userDesigned) {
+      keep(next.reachM, panelMutations);
+      keep(next.buildM, panelMutations);
+      keep(next.claimM, panelMutations);
+    }
     return next;
-  }, [resolvedSel, fmtFocus, panelChains, panelConstructs, panelMutations]);
+  }, [resolvedSel, fmtFocus, panelChains, panelConstructs, panelMutations, userDesigned]);
   const slots = useMemo(() => buildSlots(seed, model.buildV), [model.buildV]);
   const vByVec = useMemo(
     () => insertsByVector(slots, state.variants, state.assign),
@@ -548,6 +551,7 @@ export default function App() {
     grain,
     activePanel ? activePanel.moleculeIds.length : null,
     draftPanel ? draftPanel.moleculeIds.length : null,
+    userDesigned,
   );
   const panelReady = !!activePanel && !pendingPanel && inferred.perMolecule > 0;
   const regionGroups = useMemo(() => {
@@ -578,7 +582,9 @@ export default function App() {
     : grain === 'chn'
       ? chainRows.filter((r) => !panelChains || panelChains.has(r.id))
       : grain === 'mut'
-        ? (mutations as unknown as Row[]).filter((r) => !panelMutations || panelMutations.has(r.id))
+        ? (mutations as unknown as Row[]).filter(
+            (r) => userDesigned || !panelMutations || panelMutations.has(r.id),
+          )
         : vectorRows.filter(
             (r) => !panelConstructs || panelConstructs.has(r.id) || state.sel.con[r.id] === 'in',
           );
@@ -749,7 +755,7 @@ export default function App() {
               : 'choose'
           }
           chainCount={panelReady ? `${inferred.perMolecule} inferred` : undefined}
-          mutationCount={panelReady ? `${inferredMutations} inferred` : undefined}
+          mutationCount={panelReady && !userDesigned ? `${inferredMutations} inferred` : undefined}
           onTheFly={onTheFly}
           onGrain={(g) => setState((s) => ({ ...s, grain: g }))}
         />
@@ -1233,7 +1239,7 @@ export default function App() {
             hideOut={state.hideOut}
             text={text}
             notice={notice}
-            inferred={panelReady && (grain === 'chn' || grain === 'mut')}
+            inferred={panelReady && (grain === 'chn' || (grain === 'mut' && !userDesigned))}
             lead={
               grain === 'chn' && panelReady ? (
                 <>
@@ -1252,7 +1258,7 @@ export default function App() {
                     }
                   />
                 </>
-              ) : grain === 'mut' && panelReady ? (
+              ) : grain === 'mut' && panelReady && !userDesigned ? (
                 <section className="ratio-plan" aria-label="Inferred mutations">
                   <h3>Inferred from each well</h3>
                   <p className="sm">The molecule in each well fixes these mutations.</p>
