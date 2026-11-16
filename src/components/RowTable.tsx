@@ -17,12 +17,15 @@ export interface Row {
 
 const BUCKET_LABEL = ['In your build', 'Available', 'Ruled out'];
 const LEAD_KEY = 'protein-chain-workbench-v3-lead';
-const LEAD_DEFAULT = 240;
+/** Tall enough for the inferred note, one whole chain, and its CDR1, CDR2, and CDR3 recommendations. */
+const LEAD_DEFAULT = 840;
+const LEAD_PREVIOUS_DEFAULT = 240;
 
 function loadLeadHeight(): number {
   try {
     const n = Number(localStorage.getItem(LEAD_KEY));
-    if (n >= 96 && n <= 900) return n;
+    if (n === LEAD_PREVIOUS_DEFAULT) return LEAD_DEFAULT;
+    if (n >= 96 && n <= 1200) return n;
   } catch {
     /* private mode */
   }
