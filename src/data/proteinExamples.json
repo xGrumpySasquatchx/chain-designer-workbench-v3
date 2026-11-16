@@ -1,0 +1,506 @@
+{
+  "PRT-001": {
+    "origin": "uniprot",
+    "accession": "P01848",
+    "entryName": "TRAC_HUMAN",
+    "proteinName": "T cell receptor alpha chain constant",
+    "gene": "TRAC",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 140,
+    "sequence": "IQNPDPAVYQLRDSKSSDKSVCLFTDFDSQTNVSQSKDSDVYITDKTVLDMRSMDFKSNSAVAWSNKSDFACANAFNNSIIPEDTFFPSPESSCDVKLVEKSFETDTNLNFQNLSVIGFRILLLKVAGFNLLMTLRLWSS",
+    "functionText": "Example constant region of the human T-cell receptor alpha chain. An \u03b1\u03b2 receptor pairs it with a beta constant region such as TRBC1 (P01850). Constant region of T cell receptor (TR) alpha chain. Alpha-beta T cell receptors are antigen specific receptors which are essential to the immune response and are present on the cell surface of T lymphocytes. Recognize peptide-major histocompatibility (MH) (pMH) complexes that are displayed by antigen presenting cells (APC), a prerequisite for efficient T cell adaptive immunity against pathogens.",
+    "features": [
+      {
+        "type": "Chain",
+        "name": "T cell receptor alpha chain constant",
+        "start": 1,
+        "end": 140,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "Ig-like C1-type",
+        "start": 19,
+        "end": 107,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 22,
+        "end": 72,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Interchain (with C-130 in TRBC1 or TRBC2)",
+        "start": 94,
+        "end": 94,
+        "note": ""
+      },
+      {
+        "type": "Region",
+        "name": "Connecting peptide",
+        "start": 94,
+        "end": 115,
+        "note": ""
+      },
+      {
+        "type": "Topological domain",
+        "name": "Cytoplasmic",
+        "start": 139,
+        "end": 140,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-002": {
+    "origin": "uniprot",
+    "accession": "P31025",
+    "entryName": "LCN1_HUMAN",
+    "proteinName": "Lipocalin-1",
+    "gene": "LCN1",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 176,
+    "sequence": "MKPLLLAVSLGLIAALQAHHLLASDEEIQDVSGTWYLKAMTVDREFPEMNLESVTPMTLTTLEGGNLEAKVTMLISGRCQEVKAVLEKTDEPGKYTADGGKHVAYIIRSHVKDHYIFYCEGELHGKPVRGVKLVGRDPKNNLEALEDFEKAAGARGLSTESILIPRQSETCSPGSD",
+    "functionText": "Anticalins are engineered from the lipocalin fold. This example is human tear lipocalin. Could play a role in taste reception. Could be necessary for the concentration and delivery of sapid molecules in the gustatory system. Can bind various ligands, with chemical structures ranging from lipids and retinoids to the macrocyclic antibiotic rifampicin and even to microbial siderophores. Exhibits an extremely wide ligand pocket",
+    "features": [
+      {
+        "type": "Signal",
+        "name": "Signal",
+        "start": 1,
+        "end": 18,
+        "note": ""
+      },
+      {
+        "type": "Chain",
+        "name": "Lipocalin-1",
+        "start": 19,
+        "end": 176,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 79,
+        "end": 171,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-003": {
+    "origin": "uniprot",
+    "accession": "P58546",
+    "entryName": "MTPN_HUMAN",
+    "proteinName": "Myotrophin",
+    "gene": "MTPN",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 118,
+    "sequence": "MCDKEFMWALKNGDLDEVKDYVAKGEDVNRTLEGGRKPLHYAADCGQLEILEFLLLKGADINAPDKHHITPLLSAVYEGHVSCVKLLLSKGADKTVKGPDGLTAFEATDNQAIKALLQ",
+    "functionText": "DARPins are designed ankyrin-repeat proteins. This example is human myotrophin, a reviewed protein with three ankyrin repeats. Promotes dimerization of NF-kappa-B subunits and regulates NF-kappa-B transcription factor activity (By similarity). Plays a role in the regulation of the growth of actin filaments. Inhibits the activity of the F-actin-capping protein complex formed by the CAPZA1 and CAPZB heterodimer. Promotes growth of cardiomyocytes, but not cardiomyocyte proliferation. Promotes cardiac muscle hypertrophy",
+    "features": [
+      {
+        "type": "Repeat",
+        "name": "ANK 1",
+        "start": 2,
+        "end": 30,
+        "note": ""
+      },
+      {
+        "type": "Chain",
+        "name": "Myotrophin",
+        "start": 2,
+        "end": 118,
+        "note": ""
+      },
+      {
+        "type": "Repeat",
+        "name": "ANK 2",
+        "start": 34,
+        "end": 66,
+        "note": ""
+      },
+      {
+        "type": "Repeat",
+        "name": "ANK 3",
+        "start": 67,
+        "end": 99,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-004": {
+    "origin": "uniprot",
+    "accession": "P07316",
+    "entryName": "CRGB_HUMAN",
+    "proteinName": "Gamma-crystallin B",
+    "gene": "CRYGB",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 175,
+    "sequence": "MGKITFYEDRAFQGRSYECTTDCPNLQPYFSRCNSIRVESGCWMIYERPNYQGHQYFLRRGEYPDYQQWMGLSDSIRSCCLIPPHSGAYRMKIYDRDELRGQMSELTDDCISVQDRFHLTEIHSLNVLEGSWILYEMPNYRGRQYLLRPGEYRRFLDWGAPNAKVGSLRRVMDLY",
+    "functionText": "Affilins are engineered from ubiquitin or from gamma-crystallin. This example is human gamma-crystallin B. The ubiquitin monomer is residues 1\u201376 of polyubiquitin-C (P0CG48). Crystallins are the dominant structural components of the vertebrate eye lens",
+    "features": [
+      {
+        "type": "Chain",
+        "name": "Gamma-crystallin B",
+        "start": 1,
+        "end": 175,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "Beta/gamma crystallin 'Greek key' 1",
+        "start": 2,
+        "end": 40,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "Beta/gamma crystallin 'Greek key' 2",
+        "start": 41,
+        "end": 83,
+        "note": ""
+      },
+      {
+        "type": "Region",
+        "name": "Connecting peptide",
+        "start": 84,
+        "end": 88,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "Beta/gamma crystallin 'Greek key' 3",
+        "start": 89,
+        "end": 129,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "Beta/gamma crystallin 'Greek key' 4",
+        "start": 130,
+        "end": 172,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-005": {
+    "origin": "uniprot",
+    "accession": "P02751",
+    "entryName": "FINC_HUMAN",
+    "proteinName": "Fibronectin type III domain 10",
+    "gene": "FN1",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 94,
+    "sequence": "VSDVPRDLEVVAATPTSLLISWDAPAVTVRYYRITYGETGGNSPVQEFTVPGSKSTATISGLKPGVDYTITVYAVTGRGDSPASSKPISINYRT",
+    "functionText": "Adnectins and monobodies are engineered from the 10th fibronectin type III domain. This example is residues 1538\u20131631 of human fibronectin (P02751), the 94-residue scaffold used for those binders. UniProt numbers the overlapping modules as type-III 10 (1453\u20131540) and type-III 11 (1541\u20131634) because an extra domain shifts the count.",
+    "features": [
+      {
+        "type": "Domain",
+        "name": "Fibronectin type III 10",
+        "start": 1,
+        "end": 94,
+        "note": "P02751 residues 1538-1631"
+      }
+    ]
+  },
+  "PRT-006": {
+    "origin": "uniprot",
+    "accession": "P01130",
+    "entryName": "LDLR_HUMAN",
+    "proteinName": "LDL-receptor class A 1",
+    "gene": "LDLR",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 41,
+    "sequence": "DRCERNEFQCQDGKCISYKWVCDGSAECQDGSDESQETCLS",
+    "functionText": "Avimers are multivalent proteins built from LDL-receptor class A domains. This example is class A domain 1 of human LDLR (P01130, residues 25\u201365). Binds low density lipoprotein /LDL, the major cholesterol-carrying lipoprotein of plasma, and transports it into cells by endocytosis. In order to be internalized, the receptor-ligand complexes must first cluster into clathrin-coated pits.",
+    "features": [
+      {
+        "type": "Domain",
+        "name": "LDL-receptor class A 1",
+        "start": 1,
+        "end": 41,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 3,
+        "end": 15,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 10,
+        "end": 28,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 22,
+        "end": 39,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-007": {
+    "origin": "uniprot",
+    "accession": "P10646",
+    "entryName": "TFPI1_HUMAN",
+    "proteinName": "Tissue factor pathway inhibitor",
+    "gene": "TFPI",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 304,
+    "sequence": "MIYTMKKVHALWASVCLLLNLAPAPLNADSEEDEEHTIITDTELPPLKLMHSFCAFKADDGPCKAIMKRFFFNIFTRQCEEFIYGGCEGNQNRFESLEECKKMCTRDNANRIIKTTLQQEKPDFCFLEEDPGICRGYITRYFYNNQTKQCERFKYGGCLGNMNNFETLEECKNICEDGPNGFQVDNYGTQLNAVNNSLTPQSTKVPSLFEFHGPSWCLTPADRGLCRANENRFYYNSVIGKCRPFKYSGCGGNENNFTSKQECLRACKKGFIQRISKGGLIKTKRKRKKQRVKIAYEEIFVKNM",
+    "functionText": "Kunitz domains are protease-inhibitor modules. This example is human tissue factor pathway inhibitor, which carries three Kunitz domains. Inhibits factor X (X(a)) directly and, in a Xa-dependent way, inhibits VIIa/tissue factor activity, presumably by forming a quaternary Xa/LACI/VIIa/TF complex. It possesses an antithrombotic action and also the ability to associate with lipoproteins in plasma",
+    "features": [
+      {
+        "type": "Signal",
+        "name": "Signal",
+        "start": 1,
+        "end": 28,
+        "note": ""
+      },
+      {
+        "type": "Chain",
+        "name": "Tissue factor pathway inhibitor",
+        "start": 29,
+        "end": 304,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 54,
+        "end": 104,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "BPTI/Kunitz inhibitor 1",
+        "start": 54,
+        "end": 104,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 63,
+        "end": 87,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 79,
+        "end": 100,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 125,
+        "end": 175,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "BPTI/Kunitz inhibitor 2",
+        "start": 125,
+        "end": 175,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 134,
+        "end": 158,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 150,
+        "end": 171,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 217,
+        "end": 267,
+        "note": ""
+      },
+      {
+        "type": "Domain",
+        "name": "BPTI/Kunitz inhibitor 3",
+        "start": 217,
+        "end": 267,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 226,
+        "end": 250,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 242,
+        "end": 263,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-008": {
+    "origin": "uniprot",
+    "accession": "P02976",
+    "entryName": "SPA_STAA8",
+    "proteinName": "Immunoglobulin-binding region B",
+    "gene": "spa",
+    "organism": "Staphylococcus aureus (strain NCTC 8325 / PS 47)",
+    "reviewed": true,
+    "length": 58,
+    "sequence": "ADNKFNKEQQNAFYEILHLPNLNEEQRNGFIQSLKDDPSQSANLLAEAKKLNDAQAPK",
+    "functionText": "Affibodies are engineered from an immunoglobulin-binding domain of staphylococcal protein A. This example is Ig-binding region B (P02976, residues 212\u2013269), the parent of the Z domain. Plays a role in the inhibition of the host innate and adaptive immune responses. Possesses five immunoglobulin-binding domains that capture both the fragment crystallizable region (Fc region) and the Fab region (part of Ig that identifies antigen) of immunoglobulins. In turn, Staphylococcus aureus is protected from phagocytic killing via inhibition of Ig Fc region.",
+    "features": [
+      {
+        "type": "Repeat",
+        "name": "Immunoglobulin-binding region B",
+        "start": 1,
+        "end": 58,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-009": {
+    "origin": "uniprot",
+    "accession": "P13123",
+    "entryName": "DN7D_SULAC",
+    "proteinName": "DNA-binding protein 7d",
+    "gene": "",
+    "organism": "Sulfolobus acidocaldarius (strain ATCC 33909 / DSM 639 / JCM 8929 / NBRC 15157 / NCIMB 11770)",
+    "reviewed": true,
+    "length": 66,
+    "sequence": "MVKVKFKYKGEEKEVDTSKIKKVWRVGKMVSFTYDDNGKTGRGAVSEKDAPKELLDMLARAEREKK",
+    "functionText": "Nanofitins are engineered from the Sac7d DNA-binding protein. This example is DNA-binding protein 7d from Sulfolobus acidocaldarius. Can constrain negative DNA supercoils. May be involved in maintaining the integrity of the genome at high temperature",
+    "features": [
+      {
+        "type": "Chain",
+        "name": "DNA-binding protein 7b",
+        "start": 2,
+        "end": 59,
+        "note": ""
+      },
+      {
+        "type": "Chain",
+        "name": "DNA-binding protein 7a",
+        "start": 2,
+        "end": 62,
+        "note": ""
+      },
+      {
+        "type": "Chain",
+        "name": "DNA-binding protein 7d",
+        "start": 2,
+        "end": 65,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-010": {
+    "origin": "uniprot",
+    "accession": "P06241",
+    "entryName": "FYN_HUMAN",
+    "proteinName": "SH3",
+    "gene": "FYN",
+    "organism": "Homo sapiens",
+    "reviewed": true,
+    "length": 62,
+    "sequence": "TGVTLFVALYDYEARTEDDLSFHKGEKFQILNSSEGDWWEARSLTTGETGYIPSNYVAPVDS",
+    "functionText": "Fynomers are engineered from the SH3 domain of the Fyn kinase. This example is the SH3 domain of human Fyn (P06241, residues 82\u2013143). Non-receptor tyrosine-protein kinase that plays a role in many biological processes including regulation of cell growth and survival, cell adhesion, integrin-mediated signaling, cytoskeletal remodeling, cell motility, immune response and axon guidance. Inactive FYN is phosphorylated on its C-terminal tail within the catalytic domain.",
+    "features": [
+      {
+        "type": "Domain",
+        "name": "SH3",
+        "start": 1,
+        "end": 62,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-011": {
+    "origin": "uniprot",
+    "accession": "P12071",
+    "entryName": "ITR2_ECBEL",
+    "proteinName": "Trypsin inhibitor 2",
+    "gene": "",
+    "organism": "Ecballium elaterium",
+    "reviewed": true,
+    "length": 30,
+    "sequence": "GCPRILMRCKQDSDCLAGCVCGPNGFCGSP",
+    "functionText": "Knottins use an inhibitor cystine-knot scaffold. This example is trypsin inhibitor 2 from Ecballium elaterium (EETI-II). Inhibits trypsin",
+    "features": [
+      {
+        "type": "Peptide",
+        "name": "Trypsin inhibitor 2",
+        "start": 1,
+        "end": 30,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 2,
+        "end": 19,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 9,
+        "end": 21,
+        "note": ""
+      },
+      {
+        "type": "Disulfide bond",
+        "name": "Disulfide bond",
+        "start": 15,
+        "end": 27,
+        "note": ""
+      }
+    ]
+  },
+  "PRT-012": {
+    "origin": "uniprot",
+    "accession": "P06654",
+    "entryName": "SPG1_STRSG",
+    "proteinName": "Ig-binding domain",
+    "gene": "spg",
+    "organism": "Streptococcus sp. group G",
+    "reviewed": true,
+    "length": 55,
+    "sequence": "TYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE",
+    "functionText": "\u03b2-Hairpin mimetics copy a natural \u03b2-hairpin. This example is an immunoglobulin-binding domain of streptococcal protein G (P06654, residues 228\u2013282). Binds to the constant Fc region of IgG with high affinity",
+    "features": [
+      {
+        "type": "Repeat",
+        "name": "Ig-binding domain",
+        "start": 1,
+        "end": 55,
+        "note": ""
+      }
+    ]
+  }
+}

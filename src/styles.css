@@ -147,6 +147,7 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .protein-reviewed{display:flex; align-items:center; gap:6px; font-size:12px}
 .protein-hits{list-style:none; margin:0; padding:0; border:1px solid var(--rule); border-radius:4px; max-height:280px; overflow:auto}
 .protein-seq{font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.45; overflow-wrap:anywhere}
+.protein-feature{display:block; font-size:13px; line-height:1.45}
 .gsv,.gsv-panel{display:flex; flex-direction:column; gap:8px; margin:16px 0}
 .gsv-stage{display:flex; gap:8px; align-items:flex-start; min-width:0}
 .gsv-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:8px}

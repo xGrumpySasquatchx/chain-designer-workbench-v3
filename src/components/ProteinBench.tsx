@@ -267,6 +267,26 @@ function RegisteredProtein({ protein, onNew }: { protein: ProteinRecord; onNew: 
           <dd>{PROTEIN_USES.map((item) => item.label).join('. ')}.</dd>
         </div>
       </dl>
+      <BroughtSequence sequence={protein.example} />
+      {protein.example.features.length ? (
+        <dl className="infer-dl protein-facts">
+          <div>
+            <dt>Features</dt>
+            <dd>
+              {protein.example.features.map((feature) => (
+                <span
+                  key={`${feature.type}:${feature.name}:${feature.start}:${feature.end}`}
+                  className="protein-feature"
+                >
+                  {feature.name && feature.name !== feature.type ? `${feature.type} · ${feature.name}` : feature.type}
+                  {' · '}
+                  {feature.start}–{feature.end}
+                </span>
+              ))}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
       <div className="req-actions">
         <button className="btn primary" type="button" onClick={onNew}>
           Start a new protein from this

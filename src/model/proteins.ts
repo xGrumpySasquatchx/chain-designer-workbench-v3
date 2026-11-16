@@ -1,3 +1,4 @@
+import proteinExamples from '../data/proteinExamples.json';
 import { characterizedTranslations, preferredTranslation } from './sequences';
 import { registerExpression } from './expression';
 import type {
@@ -32,7 +33,11 @@ export interface ProteinRecord {
   family: ProteinFamily;
   origin: string;
   summary: string;
+  /** Reviewed UniProt example for this receptor or scaffold. */
+  example: ProteinSequenceRecord;
 }
+
+const EXAMPLES = proteinExamples as Record<string, ProteinSequenceRecord>;
 
 /** Receptors and scaffolds already registered, in the same sense as an antibody panel. */
 export const PROTEINS: ProteinRecord[] = [
@@ -42,6 +47,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'receptor',
     origin: 'T-cell receptor',
     summary: 'A receptor registered as its own protein. It is not an antibody format.',
+    example: EXAMPLES['PRT-001'],
   },
   {
     id: 'PRT-002',
@@ -49,6 +55,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Lipocalins',
     summary: 'Customizable binding loops similar to antibody CDRs.',
+    example: EXAMPLES['PRT-002'],
   },
   {
     id: 'PRT-003',
@@ -56,6 +63,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Ankyrin repeat domains',
     summary: 'Designed ankyrin repeat proteins with high stability and specificity.',
+    example: EXAMPLES['PRT-003'],
   },
   {
     id: 'PRT-004',
@@ -63,6 +71,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Ubiquitin or gamma-B-crystallin',
     summary: 'A scaffold engineered from ubiquitin or gamma-B-crystallin.',
+    example: EXAMPLES['PRT-004'],
   },
   {
     id: 'PRT-005',
@@ -70,6 +79,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Fibronectin type III domain',
     summary: 'These proteins mimic antibody binding sites.',
+    example: EXAMPLES['PRT-005'],
   },
   {
     id: 'PRT-006',
@@ -77,6 +87,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Natural human domains',
     summary: 'Multivalent proteins engineered from natural human domains.',
+    example: EXAMPLES['PRT-006'],
   },
   {
     id: 'PRT-007',
@@ -84,6 +95,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'human',
     origin: 'Protease inhibitors',
     summary: 'Proteins with inhibitory properties derived from protease inhibitors.',
+    example: EXAMPLES['PRT-007'],
   },
   {
     id: 'PRT-008',
@@ -91,6 +103,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'nonhuman',
     origin: 'Staphylococcus aureus protein A',
     summary: 'Small and highly stable binding proteins.',
+    example: EXAMPLES['PRT-008'],
   },
   {
     id: 'PRT-009',
@@ -98,6 +111,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'nonhuman',
     origin: 'Bacterial DNA-binding proteins',
     summary: 'High affinity and stability from a bacterial DNA-binding scaffold.',
+    example: EXAMPLES['PRT-009'],
   },
   {
     id: 'PRT-010',
@@ -105,6 +119,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'engineered',
     origin: 'SH3 domain of the Fyn kinase',
     summary: 'Engineered for ligand binding.',
+    example: EXAMPLES['PRT-010'],
   },
   {
     id: 'PRT-011',
@@ -112,6 +127,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'engineered',
     origin: 'Knotted cystine scaffold',
     summary: 'Extremely stable proteins with a knotted structure, used for toxin inhibition or receptor targeting.',
+    example: EXAMPLES['PRT-011'],
   },
   {
     id: 'PRT-012',
@@ -119,6 +135,7 @@ export const PROTEINS: ProteinRecord[] = [
     family: 'engineered',
     origin: 'β-hairpin peptide structure',
     summary: 'Designed to mimic β-hairpin structures for ligand binding.',
+    example: EXAMPLES['PRT-012'],
   },
 ];
 
@@ -152,12 +169,12 @@ export function newProteinDraft(drafts: ProteinDraft[], basis?: ProteinRecord): 
     basisId: basis?.id ?? null,
     use: null,
     note: '',
-    sequence: null,
+    sequence: basis?.example ?? null,
     role: null,
     parts: 1,
     translationId: null,
     onPanel: false,
-    annotations: [],
+    annotations: basis?.example ? annotationsFromSequence(basis.example) : [],
     hiddenAnnotationTypes: [],
   };
 }
@@ -619,29 +636,48 @@ export function searchInternalProteins(by: ProteinSearchBy, query: string, draft
   if (by === 'sequence') {
     const sequence = aminoAcidSequence(text);
     if (!sequence) return [];
-    return drafts.flatMap((draft) => {
+    const registered = PROTEINS.flatMap((protein) => {
+      const stored = protein.example.sequence;
+      if (!stored.includes(sequence)) return [];
+      return [registryHit(protein, stored === sequence)];
+    });
+    const saved = drafts.flatMap((draft) => {
       const stored = draft.sequence?.sequence ?? '';
       if (!stored.includes(sequence)) return [];
       return [draftHit(draft, stored === sequence)];
     });
+    return [...registered, ...saved];
   }
   const needle = proteinSearchText(text);
   const classes = PROTEINS.filter((protein) =>
     proteinSearchText([protein.id, protein.name, protein.origin, protein.summary].join(' ')).includes(needle),
   ).map(
-    (protein): ProteinLookupHit => ({
-      key: `registry:${protein.id}`,
-      origin: 'internal',
-      title: protein.name,
-      detail: `${protein.id} · ${protein.origin}`,
-      basisId: protein.id,
-      sequence: null,
-    }),
+    (protein) => registryHit(protein, false),
   );
   const saved = drafts
     .filter((draft) => proteinSearchText(draftSearchText(draft)).includes(needle))
     .map((draft) => draftHit(draft, false));
   return [...classes, ...saved];
+}
+
+function registryHit(protein: ProteinRecord, exact: boolean): ProteinLookupHit {
+  const sequence = protein.example;
+  return {
+    key: `registry:${protein.id}`,
+    origin: 'internal',
+    title: protein.name,
+    detail: [
+      protein.id,
+      sequence.accession,
+      protein.origin,
+      exact ? 'Exact sequence' : '',
+      `${sequence.length} aa`,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    basisId: protein.id,
+    sequence,
+  };
 }
 
 function draftSearchText(draft: ProteinDraft): string {

@@ -1108,7 +1108,18 @@ check(
     proteinDraft.id === 'PRT-R001' &&
     proteinDraft.basisId === 'PRT-003' &&
     proteinDraft.family === 'human' &&
-    proteinDraft.sequence === null &&
+    proteinDraft.sequence?.accession === 'P58546' &&
+    proteinDraft.sequence.sequence.length === 118 &&
+    proteinDraft.annotations.some((annotation) => annotation.type === 'Repeat') &&
+    PROTEINS.every(
+      (protein) =>
+        protein.example.reviewed &&
+        protein.example.origin === 'uniprot' &&
+        protein.example.sequence.length === protein.example.length &&
+        protein.example.features.every(
+          (feature) => feature.start >= 1 && feature.end <= protein.example.length && feature.end >= feature.start,
+        ),
+    ) &&
     newProteinDraft([proteinDraft]).id === 'PRT-R002' &&
     proteinSearchText('Affibodies').includes(proteinSearchText('Affibody')),
 );
@@ -1150,7 +1161,8 @@ check(
     stored.name === 'Insulin' &&
     stored.sequence?.accession === 'P01308' &&
     stored.sequence.sequence === insulin &&
-    byName.some((hit) => hit.basisId === 'PRT-003' && hit.sequence === null) &&
+    byName.some((hit) => hit.basisId === 'PRT-003' && hit.sequence?.accession === 'P58546') &&
+    searchInternalProteins('sequence', 'VSDVPRDLEVVAATPT', []).some((hit) => hit.basisId === 'PRT-005') &&
     bySequence.length === 1 &&
     bySequence[0].sequence?.accession === 'P01308' &&
     searchInternalProteins('sequence', insulin.slice(0, 20), []).length === 0,
