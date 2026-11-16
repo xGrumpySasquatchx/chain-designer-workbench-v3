@@ -183,7 +183,7 @@ function SequenceChoice({
         <div className="seq-rank-head">
           <span />
           <span>Rank</span>
-          <span />
+          <span>Frequency of use</span>
           <span>Used</span>
         </div>
         {nucleotides.map((item, index) => (
